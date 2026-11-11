@@ -1,8 +1,13 @@
 # Sinborn
 
-A browser action RPG with Seven Deadly Sins bloodlines. Its loop is modeled on Roblox Bloodlines-style games: spin for a random bloodline, grind your stats, and fight bosses.
+An action RPG with Seven Deadly Sins bloodlines. Its loop is modeled on Roblox Bloodlines-style games: spin for a random bloodline, grind your stats, and fight bosses.
 
-Open `index.html` in a desktop browser. You need a keyboard and mouse. Progress saves to the browser's localStorage.
+There are two versions:
+
+- **Browser:** open `index.html` in a desktop browser.
+- **Roblox Studio:** open `roblox/Sinborn.rbxlx`. Setup, Rojo sync and manual paste steps are in [`roblox/README.md`](roblox/README.md).
+
+The browser version needs a keyboard and mouse. Progress saves to the browser's localStorage.
 
 ## Core loop
 - **Spin for a bloodline.** Each spin rolls one of seven sins: Sloth 30%, Gluttony 25%, Greed 18%, Envy 12%, Lust 9%, Wrath 5%, Pride 1%. A pity counter guarantees a Legendary or Mythic within 50 spins. Each bloodline has stat multipliers, a passive and four skills.

@@ -1,0 +1,23 @@
+{
+  "name": "Sinborn",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "Sinborn": {
+        "$path": "src/shared"
+      }
+    },
+    "ServerScriptService": {
+      "SinbornServer": {
+        "$path": "src/server"
+      }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "SinbornClient": {
+          "$path": "src/client"
+        }
+      }
+    }
+  }
+}

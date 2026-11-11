@@ -1,0 +1,4114 @@
+<roblox xmlns:xmime="http://www.w3.org/2005/05/xmlmime" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.roblox.com/roblox.xsd" version="4"><External>null</External><External>nil</External><Item class="Workspace" referent="RBX00000001"><Properties><string name="Name">Workspace</string></Properties></Item><Item class="ReplicatedStorage" referent="RBX00000004"><Properties><string name="Name">ReplicatedStorage</string></Properties><Item class="Folder" referent="RBX00000003"><Properties><string name="Name">Sinborn</string></Properties><Item class="ModuleScript" referent="RBX00000002"><Properties><string name="Name">Config</string><ProtectedString name="Source"><![CDATA[-- Sinborn shared configuration: bloodlines, affinities, bosses and formulas.
+-- Lives in ReplicatedStorage.Sinborn.Config so both server and client can read it.
+-- Distances are in studs, speeds in studs per second, times in seconds.
+-- Skill "dmg" is a multiplier of the player's skill power.
+
+local C = {}
+
+local function rgb(r, g, b)
+	return Color3.fromRGB(r, g, b)
+end
+C.rgb = rgb
+
+C.THEME = {
+	pit = rgb(11, 8, 9),
+	stone = rgb(26, 19, 21),
+	stone2 = rgb(36, 26, 29),
+	seam = rgb(58, 42, 46),
+	bone = rgb(236, 226, 214),
+	ash = rgb(161, 146, 139),
+	blood = rgb(196, 32, 47),
+	ember = rgb(242, 169, 59),
+	hp = rgb(210, 51, 69),
+	mal = rgb(139, 77, 255),
+	xp = rgb(242, 169, 59),
+	soul = rgb(159, 230, 255),
+	danger = rgb(255, 48, 64),
+}
+
+C.RARITY = {
+	common = { name = "Common", color = rgb(183, 174, 166) },
+	uncommon = { name = "Uncommon", color = rgb(108, 199, 122) },
+	rare = { name = "Rare", color = rgb(90, 167, 255) },
+	legendary = { name = "Legendary", color = rgb(242, 169, 59) },
+	mythic = { name = "Mythic", color = rgb(255, 79, 176) },
+}
+C.RANK_LETTERS = { "D", "C", "B", "A", "S" }
+C.RANK_COLORS = { rgb(183, 174, 166), rgb(108, 199, 122), rgb(90, 167, 255), rgb(242, 169, 59), rgb(255, 79, 176) }
+
+C.SIN_ORDER = { "sloth", "gluttony", "greed", "envy", "lust", "wrath", "pride" }
+C.SINS = {
+	sloth = {
+		name = "Sloth", rarity = "common", w = 30, color = rgb(111, 183, 255), bonus = { vit = 1.15 },
+		passive = "Idle Grace: stand still for a second and your HP and Malice regenerate three times faster.",
+		skills = {
+			{ id = "sl1", name = "Dream Bolt", u = 1, cd = 3, cost = 12, kind = "proj", count = 1, speed = 62, r = 1.1, dmg = 2.2, life = 1.1, status = { "sleep", 2.2 }, desc = "A drowsy bolt that puts its target to sleep." },
+			{ id = "sl2", name = "Lethargy Field", u = 4, cd = 9, cost = 25, kind = "vortex", rad = 18, dur = 4, pull = 0, dps = 0.8, status = { "slow", 1 }, desc = "A pool of torpor that slows and wears down everything inside." },
+			{ id = "sl3", name = "Heavy Eyelids", u = 9, cd = 10, cost = 30, kind = "cone", range = 28, half = 0.65, dmg = 2.6, status = { "sleep", 3 }, desc = "A wave of exhaustion that sends everything in front of you to sleep." },
+			{ id = "sl4", name = "Eternal Rest", u = 15, cd = 22, cost = 55, kind = "nova", at = "cursor", rad = 25, delay = 1.2, dmg = 9, status = { "stun", 1.6 }, desc = "After a long yawn, the ground at your aim collapses into dreamless sleep." },
+		},
+	},
+	gluttony = {
+		name = "Gluttony", rarity = "common", w = 25, color = rgb(255, 140, 46), bonus = { vit = 1.2, str = 1.05 },
+		passive = "Bottomless: 10% of all damage you deal heals you.",
+		skills = {
+			{ id = "gl1", name = "Devour", u = 1, cd = 4, cost = 12, kind = "cone", range = 15, half = 0.8, dmg = 3, lifesteal = 0.5, desc = "A savage bite in front of you that heals for half the damage." },
+			{ id = "gl2", name = "Bile Spit", u = 4, cd = 6, cost = 20, kind = "proj", count = 5, spread = 0.55, speed = 56, r = 0.9, dmg = 1.4, life = 0.7, status = { "slow", 2 }, desc = "A spray of corrosive bile that slows." },
+			{ id = "gl3", name = "Gorge", u = 9, cd = 12, cost = 35, kind = "vortex", rad = 28, dur = 2.5, pull = 34, dps = 1.2, desc = "Open a hungry vortex that drags enemies in and chews them." },
+			{ id = "gl4", name = "Maw of Hunger", u = 15, cd = 20, cost = 55, kind = "beam", len = 65, width = 10, delay = 0.5, dmg = 10, lifesteal = 0.3, desc = "A spectral jaw snaps shut along a line, feeding you." },
+		},
+	},
+	greed = {
+		name = "Greed", rarity = "uncommon", w = 18, color = rgb(245, 197, 66), bonus = { agi = 1.1, mal = 1.05 },
+		passive = "Avarice: enemies drop 60% more souls.",
+		skills = {
+			{ id = "gr1", name = "Coin Fan", u = 1, cd = 2.5, cost = 10, kind = "proj", count = 3, spread = 0.35, speed = 77, r = 0.9, dmg = 1.8, pierce = 1, life = 0.8, desc = "Flick a fan of razor-edged coins." },
+			{ id = "gr2", name = "Tithe Rush", u = 4, cd = 6, cost = 18, kind = "dash", dist = 36, width = 7, dmg = 3.5, soulsOnHit = 2, desc = "Dash through enemies, collecting a tithe of souls from each." },
+			{ id = "gr3", name = "Golden Hoard", u = 9, cd = 16, cost = 30, kind = "shield", amount = 0.45, dur = 7, desc = "Wrap yourself in hoarded gold that absorbs damage." },
+			{ id = "gr4", name = "Midas Touch", u = 15, cd = 20, cost = 50, kind = "nova", at = "cursor", rad = 20, delay = 0.6, dmg = 7, exec = 0.35, desc = "Turn enemies below 35% HP to gold. Bosses take heavy damage instead." },
+		},
+	},
+	envy = {
+		name = "Envy", rarity = "rare", w = 12, color = rgb(61, 220, 132), bonus = { agi = 1.15, mal = 1.1 },
+		passive = "Covetous Eye: deal 25% more damage to enemies with a higher HP percentage than yours.",
+		skills = {
+			{ id = "en1", name = "Green Eye", u = 1, cd = 3, cost = 12, kind = "proj", count = 2, spread = 0.5, homing = true, speed = 52, r = 1, dmg = 2, life = 1.6, desc = "Two jealous eyes that hunt the nearest enemy." },
+			{ id = "en2", name = "Jealous Chains", u = 4, cd = 7, cost = 20, kind = "proj", count = 1, speed = 86, r = 1, dmg = 2.5, pierce = 3, life = 0.8, status = { "root", 2.5 }, desc = "A chain that pierces and roots up to four enemies." },
+			{ id = "en3", name = "Usurp", u = 9, cd = 9, cost = 28, kind = "blink", range = 43, rad = 16, dmg = 4, status = { "slow", 2 }, desc = "Step into the place you covet, bursting on arrival." },
+			{ id = "en4", name = "Green-Eyed Monster", u = 15, cd = 22, cost = 55, kind = "rain", n = 10, area = 28, rad = 9, dmg = 3.6, interval = 0.12, desc = "Claws of envy tear up the ground around your aim." },
+		},
+	},
+	lust = {
+		name = "Lust", rarity = "rare", w = 9, color = rgb(255, 95, 162), bonus = { mal = 1.15, agi = 1.1 },
+		passive = "Allure: melee hits have a 15% chance to charm, stopping the enemy from attacking.",
+		skills = {
+			{ id = "lu1", name = "Kiss of Thorns", u = 1, cd = 3, cost = 12, kind = "proj", count = 1, speed = 67, r = 1.1, dmg = 2.4, life = 1, status = { "charm", 2.5 }, desc = "A thorned kiss that charms its target." },
+			{ id = "lu2", name = "Rose Whip", u = 4, cd = 5, cost = 18, kind = "beam", len = 41, width = 4.5, delay = 0.1, dmg = 4, knock = 20, desc = "A long lash of briars." },
+			{ id = "lu3", name = "Allure", u = 9, cd = 12, cost = 32, kind = "nova", at = "self", rad = 30, dmg = 2, pull = 26, status = { "charm", 3 }, desc = "Draw every nearby enemy toward you, charmed." },
+			{ id = "lu4", name = "Heartbreak", u = 15, cd = 20, cost = 55, kind = "nova", at = "self", rad = 45, delay = 0.8, dmg = 8, vsCharm = 2, desc = "Shatter every heart nearby. Charmed enemies take double damage." },
+		},
+	},
+	wrath = {
+		name = "Wrath", rarity = "legendary", w = 5, color = rgb(255, 59, 48), bonus = { str = 1.3, mal = 1.1 },
+		passive = "Seething: deal up to 60% more damage the lower your HP falls.",
+		skills = {
+			{ id = "wr1", name = "Rage Fist", u = 1, cd = 4, cost = 14, kind = "dash", dist = 28, width = 8, dmg = 4, knock = 38, desc = "Lunge forward with a burning fist." },
+			{ id = "wr2", name = "Eruption", u = 4, cd = 8, cost = 24, kind = "nova", at = "self", rad = 22, dmg = 4.5, status = { "burn", 3 }, knock = 31, desc = "Explode in rage, scorching and hurling enemies away." },
+			{ id = "wr3", name = "Fury Barrage", u = 9, cd = 8, cost = 28, kind = "proj", count = 7, spread = 0.9, speed = 80, r = 0.9, dmg = 1.6, life = 0.7, status = { "burn", 2 }, desc = "Seven blazing strikes thrown at once." },
+			{ id = "wr4", name = "Apocalypse", u = 15, cd = 24, cost = 60, kind = "rain", n = 16, area = 36, rad = 11, dmg = 5, interval = 0.1, status = { "burn", 3 }, desc = "Call down a storm of hellstones around your aim." },
+		},
+	},
+	pride = {
+		name = "Pride", rarity = "mythic", w = 1, color = rgb(227, 194, 255), bonus = { vit = 1.2, mal = 1.2, str = 1.2, agi = 1.2 }, takenMult = 0.9,
+		passive = "Divine Right: +20% to every stat and 10% less damage taken.",
+		skills = {
+			{ id = "pr1", name = "Halo Lance", u = 1, cd = 2.5, cost = 12, kind = "beam", len = 74, width = 3.4, delay = 0.12, dmg = 3.5, desc = "A spear of radiant light that pierces the whole line." },
+			{ id = "pr2", name = "Throne Quake", u = 4, cd = 8, cost = 24, kind = "nova", at = "self", rad = 28, dmg = 4, status = { "stun", 1.2 }, knock = 26, desc = "Stamp your authority into the ground, stunning all around you." },
+			{ id = "pr3", name = "Judgement", u = 9, cd = 12, cost = 35, kind = "rain", n = 7, area = 20, rad = 10, dmg = 5, interval = 0.18, status = { "stun", 0.6 }, desc = "Pillars of light fall where you aim." },
+			{ id = "pr4", name = "Morningstar's Fall", u = 15, cd = 26, cost = 70, kind = "nova", at = "cursor", rad = 37, delay = 1.4, dmg = 16, status = { "burn", 4 }, desc = "Drop a falling star where you aim." },
+		},
+	},
+}
+
+C.AFF_ORDER = { "hellfire", "frost", "brimstone", "storm", "umbra" }
+C.AFFS = {
+	hellfire = {
+		name = "Hellfire", rarity = "common", w = 30, color = rgb(255, 106, 42), passive = "Fire that burns over time.",
+		skills = {
+			{ id = "hf1", name = "Hellfire Orb", u = 2, cd = 4, cost = 15, kind = "proj", count = 1, speed = 55, r = 1.7, dmg = 2.5, explode = 10, life = 1.2, status = { "burn", 3 }, desc = "A slow orb that bursts into flame on impact." },
+			{ id = "hf2", name = "Inferno Ring", u = 7, cd = 11, cost = 30, kind = "nova", at = "self", rad = 25, dmg = 4, status = { "burn", 4 }, knock = 22, desc = "A ring of fire erupts around you." },
+		},
+	},
+	frost = {
+		name = "Cocytus Frost", rarity = "common", w = 26, color = rgb(159, 230, 255), passive = "Ice from the frozen lake. Slows and freezes.",
+		skills = {
+			{ id = "fr1", name = "Ice Shards", u = 2, cd = 3.5, cost = 14, kind = "proj", count = 3, spread = 0.25, speed = 72, r = 0.9, dmg = 1.8, life = 0.9, status = { "slow", 2.5 }, desc = "Three shards that chill and slow." },
+			{ id = "fr2", name = "Frozen Tomb", u = 7, cd = 12, cost = 30, kind = "nova", at = "cursor", rad = 17, delay = 0.4, dmg = 3.5, status = { "stun", 2.2 }, desc = "Encase an area in ice, freezing enemies solid." },
+		},
+	},
+	brimstone = {
+		name = "Brimstone", rarity = "uncommon", w = 22, color = rgb(192, 138, 90), passive = "Sulphur and stone. Heavy knockback and roots.",
+		skills = {
+			{ id = "br1", name = "Boulder", u = 2, cd = 5, cost = 16, kind = "proj", count = 1, speed = 47, r = 2.6, dmg = 3.6, knock = 46, pierce = 2, life = 1.2, desc = "Hurl a smouldering boulder that bowls enemies over." },
+			{ id = "br2", name = "Fissure", u = 7, cd = 11, cost = 28, kind = "beam", len = 50, width = 7.7, delay = 0.35, dmg = 4.2, status = { "root", 1.8 }, desc = "Split the ground in a line, rooting enemies." },
+		},
+	},
+	storm = {
+		name = "Storm", rarity = "rare", w = 15, color = rgb(201, 182, 255), passive = "Lightning from the second circle. Fast stuns.",
+		skills = {
+			{ id = "st1", name = "Chain Bolt", u = 2, cd = 3.5, cost = 14, kind = "beam", len = 55, width = 3, delay = 0, dmg = 3, status = { "stun", 0.45 }, desc = "An instant bolt that briefly stuns everything it crosses." },
+			{ id = "st2", name = "Thunderhead", u = 7, cd = 12, cost = 32, kind = "rain", n = 8, area = 25, rad = 8, dmg = 3, interval = 0.15, status = { "stun", 0.5 }, desc = "Lightning strikes rain down around your aim." },
+		},
+	},
+	umbra = {
+		name = "Umbra", rarity = "legendary", w = 7, color = rgb(143, 107, 255), passive = "Living shadow. Steals life.",
+		skills = {
+			{ id = "um1", name = "Shade Bolt", u = 2, cd = 3.5, cost = 14, kind = "proj", count = 1, homing = true, speed = 58, r = 1.1, dmg = 2.6, lifesteal = 0.3, life = 1.5, desc = "A seeking bolt of shadow that drains life." },
+			{ id = "um2", name = "Night Veil", u = 7, cd = 13, cost = 30, kind = "nova", at = "self", rad = 23, dmg = 3, heal = 0.15, status = { "slow", 2 }, desc = "Shadow bursts from you, healing 15% HP." },
+		},
+	},
+}
+
+-- Bosses: one Hollow Prince per sin, behind a sealed arena.
+C.BOSSES = {
+	{ sin = "sloth", name = "Belphag the Slumbering", req = 5, atks = { "slam", "burst", "summon" }, speed = 8.5, r = 5.5 },
+	{ sin = "gluttony", name = "Gorlund, the Endless Maw", req = 9, atks = { "charge", "slam", "pull" }, speed = 11, r = 6.2 },
+	{ sin = "greed", name = "Aurix the Hoarder", req = 13, atks = { "aimed", "burst", "summon" }, speed = 13, r = 4.8 },
+	{ sin = "envy", name = "Viridia, Mother of Envy", req = 17, atks = { "aimed", "slam", "summon", "burst" }, speed = 15.5, r = 4.8 },
+	{ sin = "lust", name = "Seraphine Thornheart", req = 21, atks = { "spiral", "charge", "aimed" }, speed = 18, r = 4.6 },
+	{ sin = "wrath", name = "Kharos the Unquenched", req = 25, atks = { "charge", "slam", "burst", "spiral" }, speed = 18, r = 5.8 },
+	{ sin = "pride", name = "Lucant, the Unbowed Crown", req = 30, atks = { "spiral", "slam", "aimed", "charge", "summon" }, speed = 19, r = 5.3 },
+}
+
+C.RANKS = { { 1, "Initiate" }, { 5, "Acolyte" }, { 10, "Sinner" }, { 15, "Fallen" }, { 20, "Archfiend" }, { 25, "Sin Prince" }, { 30, "Sin Lord" } }
+C.STAT_ORDER = { "vit", "mal", "str", "agi" }
+C.STAT_INFO = {
+	vit = { name = "Vitality", short = "VIT", d = "+12 max HP per point. Trains when you take hits." },
+	mal = { name = "Malice", short = "MAL", d = "Skill damage and max Malice. Trains while charging (faster at the Altar)." },
+	str = { name = "Strength", short = "STR", d = "Melee damage. Trains with every melee hit, dummies included." },
+	agi = { name = "Agility", short = "AGI", d = "Move speed. Trains when you dash and run." },
+}
+C.ETYPES = {
+	imp = { name = "Imp", r = 1.5, speed = 18, hp = 1.0, dmg = 1.0, xp = 1.0, color = rgb(184, 50, 58), minL = 1, w = 5 },
+	hound = { name = "Hellhound", r = 1.6, speed = 28, hp = 0.75, dmg = 0.85, xp = 1.1, color = rgb(208, 106, 42), minL = 3, w = 3 },
+	wisp = { name = "Wisp", r = 1.4, speed = 14.5, hp = 0.6, dmg = 0.9, xp = 1.1, color = rgb(169, 139, 255), minL = 5, w = 2.4 },
+	brute = { name = "Brute", r = 3, speed = 11, hp = 2.6, dmg = 1.7, xp = 2.2, color = rgb(107, 58, 63), minL = 8, w = 1.6 },
+}
+C.ETYPE_ORDER = { "imp", "hound", "wisp", "brute" }
+C.MAST = { 0, 10, 30, 70, 140 }
+C.LEVEL_CAP = 40
+C.START_SPINS = 8
+C.PITY = 50
+
+C.WORLD = {
+	R = 280, villageR = 60, arenaR = 40, cursorRange = 53,
+	meleeRange = 8, meleeHalf = 1.0, playerR = 1.5,
+}
+
+-- Gate centres (x, z). Bosses sit further out as their level rises.
+C.GATES = {}
+for i = 1, 7 do
+	local a = -math.pi / 2 + (i - 1) * (math.pi * 2 / 7) * 3 + 0.3
+	local d = 110 + (i - 1) * 22
+	C.GATES[i] = { x = math.cos(a) * d, z = math.sin(a) * d, i = i }
+end
+
+-- ---------- formulas ----------
+function C.enemyLevelAt(x, z)
+	local d = math.sqrt(x * x + z * z)
+	local l = math.floor(1 + (d - C.WORLD.villageR) / 6.6)
+	if l < 1 then l = 1 end
+	if l > 36 then l = 36 end
+	return l
+end
+function C.enemyHP(l) return 24 + l * 10 + l * l * 0.9 end
+function C.enemyDMG(l) return 5 + l * 1.6 + l * l * 0.03 end
+function C.xpNeed(l) return math.floor(40 * l ^ 1.55 + 40) end
+
+function C.rankName(l)
+	local n = C.RANKS[1][2]
+	for _, r in ipairs(C.RANKS) do
+		if l >= r[1] then n = r[2] end
+	end
+	return n
+end
+function C.eff(prof, s)
+	return prof.stats[s] * (C.SINS[prof.sin].bonus[s] or 1)
+end
+function C.maxHp(prof) return math.floor(100 + prof.level * 8 + C.eff(prof, "vit") * 12 + 0.5) end
+function C.maxMal(prof) return math.floor(100 + C.eff(prof, "mal") * 8 + 0.5) end
+function C.meleePow(prof) return (8 + C.eff(prof, "str") * 2.2) * (1 + prof.level * 0.03) end
+function C.skillPow(prof) return (6 + C.eff(prof, "mal") * 1.1) * (1 + prof.level * 0.03) end
+function C.moveSpeed(prof) return math.min(30, 16 + C.eff(prof, "agi") * 0.22) end
+function C.trainNeed(prof, s) return 15 + prof.stats[s] * 3 end
+function C.mastery(prof, id)
+	local u = prof.mastery[id] or 0
+	local m = 1
+	for i = 2, #C.MAST do
+		if u >= C.MAST[i] then m = i end
+	end
+	return m
+end
+
+-- The six active skills for a profile, each tagged with its key and source.
+C.KEYS = { "1", "2", "3", "4", "Z", "X" }
+function C.currentSkills(prof)
+	local out = {}
+	local s = C.SINS[prof.sin]
+	for i, sk in ipairs(s.skills) do
+		local c = {}
+		for k, v in pairs(sk) do c[k] = v end
+		c.key = C.KEYS[i]
+		c.src = prof.sin
+		c.color = s.color
+		out[#out + 1] = c
+	end
+	local a = C.AFFS[prof.aff]
+	for i, sk in ipairs(a.skills) do
+		local c = {}
+		for k, v in pairs(sk) do c[k] = v end
+		c.key = C.KEYS[4 + i]
+		c.src = prof.aff
+		c.color = a.color
+		out[#out + 1] = c
+	end
+	return out
+end
+function C.findSkill(prof, key)
+	for _, sk in ipairs(C.currentSkills(prof)) do
+		if sk.key == key then return sk end
+	end
+	return nil
+end
+
+function C.weightedPick(order, tbl, rng)
+	local total = 0
+	for _, k in ipairs(order) do total = total + tbl[k].w end
+	local r = (rng and rng:NextNumber() or math.random()) * total
+	for _, k in ipairs(order) do
+		r = r - tbl[k].w
+		if r <= 0 then return k end
+	end
+	return order[1]
+end
+
+function C.newProfile(name)
+	return {
+		v = 1, name = name or "Soul",
+		sin = C.weightedPick(C.SIN_ORDER, C.SINS), aff = C.weightedPick(C.AFF_ORDER, C.AFFS),
+		level = 1, xp = 0, souls = 60, spins = C.START_SPINS, spinsBought = 0, pity = 0,
+		stats = { vit = 5, mal = 5, str = 5, agi = 5 }, train = { vit = 0, mal = 0, str = 0, agi = 0 }, points = 0,
+		mastery = {}, bosses = {}, slots = { "", "" }, board = {}, mission = nil,
+		kills = 0, deaths = 0, created = false,
+	}
+end
+
+function C.hasBoss(prof, i)
+	for _, b in ipairs(prof.bosses) do
+		if b == i then return true end
+	end
+	return false
+end
+
+return C
+]]></ProtectedString></Properties></Item></Item></Item><Item class="ServerScriptService" referent="RBX00000008"><Properties><string name="Name">ServerScriptService</string></Properties><Item class="Script" referent="RBX00000007"><Properties><string name="Name">SinbornServer</string><ProtectedString name="Source"><![CDATA[-- Sinborn server: profiles, combat, enemies, bosses, missions, spins and the shop.
+-- The server owns all game state; clients only send intents (aim point + action).
+
+local Players = game:GetService("Players")
+local RS = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local Root = RS:WaitForChild("Sinborn")
+local C = require(Root:WaitForChild("Config"))
+local Data = require(script:WaitForChild("Data"))
+local World = require(script:WaitForChild("World"))
+
+-- ---------- remotes ----------
+local remotes = Root:FindFirstChild("Remotes")
+if not remotes then
+	remotes = Instance.new("Folder")
+	remotes.Name = "Remotes"
+end
+local function remote(n)
+	local r = remotes:FindFirstChild(n)
+	if not r then
+		r = Instance.new("RemoteEvent")
+		r.Name = n
+		r.Parent = remotes
+	end
+	return r
+end
+local Action = remote("Action")
+local StateR = remote("State")
+local FXR = remote("FX")
+local Notify = remote("Notify")
+remotes.Parent = Root
+
+Players.RespawnTime = 4
+local W = World.build()
+local rng = Random.new()
+local T = C.THEME
+local WR = C.WORLD
+local TAU = math.pi * 2
+local WHITE = Color3.new(1, 1, 1)
+local GOLD = C.rgb(255, 211, 107)
+
+-- ---------- state ----------
+local clock = 0
+local profiles = {}
+local PS = {}
+local dirty = {}
+local enemies = {}
+local pproj, eproj, fields = {}, {}, {}
+local activeBoss = {}
+
+-- ---------- utils ----------
+local function flat(v) return Vector3.new(v.X, 0, v.Z) end
+local function d2(a, b)
+	local dx, dz = a.X - b.X, a.Z - b.Z
+	return math.sqrt(dx * dx + dz * dz)
+end
+local function clamp(v, a, b)
+	if v < a then return a elseif v > b then return b end
+	return v
+end
+local function dirFromAngle(a) return Vector3.new(math.cos(a), 0, math.sin(a)) end
+local function angleOf(v) return math.atan2(v.Z, v.X) end
+local function validVec(v)
+	return typeof(v) == "Vector3" and v.X == v.X and v.Y == v.Y and v.Z == v.Z and math.abs(v.X) < 1e5 and math.abs(v.Z) < 1e5
+end
+local function copy(t)
+	local o = {}
+	for k, v in pairs(t) do o[k] = v end
+	return o
+end
+local function pick(list) return list[rng:NextInteger(1, #list)] end
+
+local function fxAll(kind, d) FXR:FireAllClients(kind, d) end
+local function fxTo(plr, kind, d)
+	if plr and plr.Parent then FXR:FireClient(plr, kind, d) end
+end
+local function notify(plr, kind, d)
+	if plr and plr.Parent then Notify:FireClient(plr, kind, d) end
+end
+local function toast(plr, text, color, gate)
+	local st = PS[plr]
+	if gate and st then
+		if st.toastGate[gate] and clock - st.toastGate[gate] < 1.6 then return end
+		st.toastGate[gate] = clock
+	end
+	notify(plr, "toast", { text = text, color = color or T.blood })
+end
+local function banner(plr, main, sub, color)
+	notify(plr, "banner", { main = main, sub = sub, color = color or T.bone })
+end
+local function markDirty(plr) dirty[plr] = true end
+
+local function charOf(plr)
+	local c = plr and plr.Character
+	if not c then return nil end
+	local hrp = c:FindFirstChild("HumanoidRootPart")
+	local hum = c:FindFirstChildOfClass("Humanoid")
+	if hrp and hum and hum.Health > 0 then return c, hrp, hum end
+	return nil
+end
+
+local function aimDir(hrp, aim)
+	local d = Vector3.new(0, 0, 0)
+	if validVec(aim) then d = flat(aim - hrp.Position) end
+	if d.Magnitude < 0.05 then d = flat(hrp.CFrame.LookVector) end
+	if d.Magnitude < 0.05 then d = Vector3.new(0, 0, -1) end
+	return d.Unit
+end
+local function cursorPoint(hrp, aim, range)
+	local p = flat(hrp.Position)
+	local dir = aimDir(hrp, aim)
+	local dist = range
+	if validVec(aim) then dist = math.min(d2(aim, p), range) end
+	return p + dir * dist
+end
+local function inVillage(pos, pad) return pos.Magnitude < WR.villageR + (pad or 0) end
+local function moveCharTo(c, hrp, pos)
+	local rot = hrp.CFrame - hrp.CFrame.Position
+	c:PivotTo(CFrame.new(pos.X, hrp.Position.Y, pos.Z) * rot)
+end
+
+-- ---------- player runtime ----------
+local function newRuntime(old)
+	return {
+		mal = 0, cd = {}, meleeAt = 0, combo = 0, lastSwing = -9, dashAt = 0, dashUntil = 0,
+		iframeUntil = 0, stunUntil = 0, blocking = false, charging = false, shield = 0, shieldUntil = 0,
+		awaken = false, awakenUntil = 0, awakenCdUntil = 0, lastHurt = -99, idle = 0, runAcc = 0,
+		lastPos = nil, skillDash = nil, gate = nil, toastGate = old and old.toastGate or {}, spinAt = 0,
+	}
+end
+
+local function dmgMult(plr)
+	local st, prof = PS[plr], profiles[plr]
+	local m = st.awaken and 1.4 or 1
+	if prof.sin == "wrath" then
+		local _, _, hum = charOf(plr)
+		if hum then m = m * (1 + 0.6 * (1 - hum.Health / hum.MaxHealth)) end
+	end
+	return m
+end
+
+local function refreshHealth(plr, full)
+	local _, _, hum = charOf(plr)
+	local prof = profiles[plr]
+	if not hum or not prof then return end
+	local m = C.maxHp(prof)
+	hum.MaxHealth = m
+	if full or hum.Health > m then hum.Health = m end
+end
+
+local function train(plr, s, amt)
+	local prof = profiles[plr]
+	if not prof then return end
+	prof.train[s] = prof.train[s] + amt
+	local need = C.trainNeed(prof, s)
+	local gained = false
+	while prof.train[s] >= need do
+		prof.train[s] = prof.train[s] - need
+		prof.stats[s] = prof.stats[s] + 1
+		toast(plr, "+1 " .. C.STAT_INFO[s].name .. " from training", T.bone)
+		need = C.trainNeed(prof, s)
+		gained = true
+	end
+	if gained then refreshHealth(plr, false) end
+	markDirty(plr)
+end
+
+local function gainXP(plr, x)
+	local prof, st = profiles[plr], PS[plr]
+	if not prof or prof.level >= C.LEVEL_CAP then return end
+	prof.xp = prof.xp + x
+	while prof.level < C.LEVEL_CAP and prof.xp >= C.xpNeed(prof.level) do
+		prof.xp = prof.xp - C.xpNeed(prof.level)
+		local oldRank = C.rankName(prof.level)
+		prof.level = prof.level + 1
+		prof.points = prof.points + 3
+		refreshHealth(plr, true)
+		st.mal = C.maxMal(prof)
+		local _, hrp = charOf(plr)
+		if hrp then
+			fxAll("ring", { pos = flat(hrp.Position), r0 = 1, r1 = 20, color = T.ember, dur = 0.7 })
+			fxAll("burst", { pos = hrp.Position, color = T.ember, n = 40, speed = 30 })
+		end
+		local unlocked = {}
+		for _, sk in ipairs(C.currentSkills(prof)) do
+			if sk.u == prof.level then unlocked[#unlocked + 1] = sk.name end
+		end
+		local sub = "+3 stat points · press K"
+		if #unlocked > 0 then sub = "Unlocked " .. table.concat(unlocked, ", ") .. " · +3 stat points" end
+		if prof.level == 12 then sub = "Sin Awakening unlocked · press G" end
+		banner(plr, "Level " .. prof.level, sub, T.ember)
+		if C.rankName(prof.level) ~= oldRank then
+			prof.spins = prof.spins + 2
+			task.delay(2.7, function() banner(plr, C.rankName(prof.level), "New rank · +2 spins", C.RARITY.mythic.color) end)
+		end
+	end
+	if prof.level >= C.LEVEL_CAP then prof.xp = 0 end
+	markDirty(plr)
+end
+
+-- ---------- missions ----------
+local function genMissions(prof)
+	local L = prof.level
+	local list = {}
+	local types = { "slay", "hunt", "elite", "shards" }
+	for i = 1, 3 do
+		local ri = clamp(math.floor(L / 8) + rng:NextInteger(-1, 1), 0, 4)
+		local typ = (i == 1) and "slay" or pick(types)
+		local m = { id = tostring(rng:NextInteger(100000, 999999)), rank = ri + 1, type = typ, prog = 0 }
+		if typ == "slay" then
+			m.n = 8 + ri * 3
+			m.text = "Slay " .. m.n .. " denizens of the Pit"
+		elseif typ == "hunt" then
+			local ok = {}
+			for _, k in ipairs(C.ETYPE_ORDER) do
+				if C.ETYPES[k].minL <= math.max(L, 2) then ok[#ok + 1] = k end
+			end
+			m.etype = pick(ok)
+			m.n = 5 + ri * 2
+			m.text = "Hunt " .. m.n .. " " .. C.ETYPES[m.etype].name .. "s"
+		elseif typ == "elite" then
+			m.n = 1
+			m.text = "Destroy a named elite"
+		else
+			m.n = 4 + ri
+			m.text = "Gather " .. m.n .. " soul shards from the fallen"
+		end
+		m.xp = math.floor(C.xpNeed(L) * (0.25 + ri * 0.08))
+		m.souls = math.floor((40 + L * 12) * (1 + ri * 0.4))
+		m.spin = (ri >= 3 or rng:NextNumber() < 0.25) and 1 or 0
+		list[#list + 1] = m
+	end
+	return list
+end
+
+local function progMission(plr, n)
+	local prof = profiles[plr]
+	if not prof or not prof.mission then return end
+	local m = prof.mission
+	m.prog = math.min(m.n, m.prog + n)
+	if m.prog >= m.n then
+		prof.mission = nil
+		prof.souls = prof.souls + m.souls
+		prof.spins = prof.spins + m.spin
+		toast(plr, "Mission complete: +" .. m.xp .. " XP, +" .. m.souls .. " souls" .. (m.spin > 0 and ", +1 spin" or ""), C.RANK_COLORS[m.rank])
+		gainXP(plr, m.xp)
+		prof.board = genMissions(prof)
+		task.spawn(Data.save, plr.UserId, prof)
+	end
+	markDirty(plr)
+end
+
+-- ---------- enemy models ----------
+local function ePart(props)
+	props.CanCollide = false
+	props.CanQuery = false
+	props.CanTouch = false
+	props.Anchored = true
+	return World.part(props)
+end
+
+local function newStatus() return { slow = 0, stun = 0, root = 0, charm = 0, sleep = 0, burn = 0 } end
+
+local function buildEnemyModel(e)
+	local m = Instance.new("Model")
+	local et = C.ETYPES[e.type]
+	m.Name = e.boss and "Boss" or (e.elite and "Elite" or et.name)
+	local r = e.r
+	local base = CFrame.new(e.pos.X, e.y, e.pos.Z)
+	local body
+	local col = e.boss and C.rgb(30, 18, 22) or et.color
+	if e.boss then
+		local bc = C.SINS[C.BOSSES[e.bi].sin].color
+		body = ePart({ Name = "Body", Shape = Enum.PartType.Ball, Size = Vector3.new(r * 2, r * 2, r * 2), CFrame = base, Color = col, Material = Enum.Material.Slate, Parent = m })
+		for i = -3, 3 do
+			local a = i * 0.32
+			ePart({ Name = "Crown", Size = Vector3.new(0.6, r * 0.8, 0.6), CFrame = base * CFrame.Angles(0, 0, a) * CFrame.new(0, r * 1.05, 0), Color = bc, Material = Enum.Material.Neon, Parent = m })
+		end
+		local ringM = Instance.new("Model")
+		ringM.Name = "Halo"
+		World.heptagram(ringM, Vector3.new(e.pos.X, 0.4, e.pos.Z), r * 1.6, bc, 0, 0.35, "Sigil")
+		for _, b in ipairs(ringM:GetDescendants()) do
+			if b:IsA("BasePart") then b.Parent = m end
+		end
+		ringM:Destroy()
+		local l = Instance.new("PointLight")
+		l.Color = bc
+		l.Range = 30
+		l.Brightness = 3
+		l.Parent = body
+	elseif e.type == "imp" then
+		body = ePart({ Name = "Body", Shape = Enum.PartType.Ball, Size = Vector3.new(r * 2, r * 2, r * 2), CFrame = base, Color = col, Material = Enum.Material.SmoothPlastic, Parent = m })
+		for _, sx in ipairs({ -1, 1 }) do
+			ePart({ Name = "Horn", Size = Vector3.new(0.35, r * 0.9, 0.35), CFrame = base * CFrame.new(sx * r * 0.5, r * 0.85, 0) * CFrame.Angles(0, 0, -sx * 0.4), Color = C.rgb(42, 10, 12), Material = Enum.Material.SmoothPlastic, Parent = m })
+		end
+	elseif e.type == "hound" then
+		body = ePart({ Name = "Body", Size = Vector3.new(r * 1.3, r * 1.1, r * 2.6), CFrame = base, Color = col, Material = Enum.Material.SmoothPlastic, Parent = m })
+		ePart({ Name = "Head", Shape = Enum.PartType.Ball, Size = Vector3.new(r * 1.2, r * 1.2, r * 1.2), CFrame = base * CFrame.new(0, r * 0.3, -r * 1.4), Color = col, Material = Enum.Material.SmoothPlastic, Parent = m })
+	elseif e.type == "wisp" then
+		body = ePart({ Name = "Body", Shape = Enum.PartType.Ball, Size = Vector3.new(r * 2, r * 2, r * 2), CFrame = base, Color = col, Material = Enum.Material.Neon, Transparency = 0.15, Parent = m })
+		local l = Instance.new("PointLight")
+		l.Color = col
+		l.Range = 8
+		l.Brightness = 1.5
+		l.Parent = body
+	else
+		body = ePart({ Name = "Body", Size = Vector3.new(r * 2, r * 1.8, r * 2), CFrame = base, Color = col, Material = Enum.Material.Slate, Parent = m })
+		for i = 0, 5 do
+			local a = i / 6 * TAU
+			ePart({ Name = "Spike", Size = Vector3.new(0.6, 0.6, 1.4), CFrame = base * CFrame.Angles(0, a, 0) * CFrame.new(0, r * 0.4, -r * 1.05), Color = T.danger, Material = Enum.Material.Neon, Parent = m })
+		end
+	end
+	if e.type ~= "wisp" or e.boss then
+		local er = e.boss and r * 0.14 or math.max(0.25, r * 0.16)
+		for _, sx in ipairs({ -1, 1 }) do
+			ePart({ Name = "Eye", Shape = Enum.PartType.Ball, Size = Vector3.new(er * 2, er * 2, er * 2), CFrame = base * CFrame.new(sx * r * 0.35, r * 0.25, -r * (e.type == "hound" and 1.9 or 0.92)), Color = e.boss and C.SINS[C.BOSSES[e.bi].sin].color or C.rgb(255, 211, 107), Material = Enum.Material.Neon, Parent = m })
+		end
+	end
+	if e.elite then
+		local ring = World.disc(m, Vector3.new(e.pos.X, 0.12, e.pos.Z), r + 1.2, 0.1, T.ember, Enum.Material.Neon, "EliteRing")
+		ring.CanCollide = false
+		ring.CanQuery = false
+		ring.Transparency = 0.3
+	end
+	m.PrimaryPart = body
+
+	local bb = Instance.new("BillboardGui")
+	bb.Name = "HP"
+	bb.Size = UDim2.fromOffset(e.boss and 0 or 110, 30)
+	bb.StudsOffset = Vector3.new(0, r + 1.8, 0)
+	bb.MaxDistance = 90
+	bb.LightInfluence = 0
+	local name = Instance.new("TextLabel")
+	name.Name = "Name"
+	name.BackgroundTransparency = 1
+	name.Size = UDim2.new(1, 0, 0, 14)
+	name.Font = Enum.Font.GothamBold
+	name.TextSize = 12
+	name.TextStrokeTransparency = 0.4
+	name.TextColor3 = e.elite and T.ember or T.ash
+	name.Text = e.elite and (e.name .. " · " .. e.lvl) or ("Lv " .. e.lvl)
+	name.Parent = bb
+	local barBg = Instance.new("Frame")
+	barBg.Name = "Bar"
+	barBg.Position = UDim2.new(0.1, 0, 0, 16)
+	barBg.Size = UDim2.new(0.8, 0, 0, 5)
+	barBg.BackgroundColor3 = Color3.new(0, 0, 0)
+	barBg.BackgroundTransparency = 0.3
+	barBg.BorderSizePixel = 0
+	barBg.Visible = e.elite == true
+	barBg.Parent = bb
+	local fill = Instance.new("Frame")
+	fill.Name = "Fill"
+	fill.Size = UDim2.fromScale(1, 1)
+	fill.BackgroundColor3 = e.elite and T.ember or T.hp
+	fill.BorderSizePixel = 0
+	fill.Parent = barBg
+	local stl = Instance.new("TextLabel")
+	stl.Name = "Status"
+	stl.BackgroundTransparency = 1
+	stl.Position = UDim2.new(0, 0, 0, 22)
+	stl.Size = UDim2.new(1, 0, 0, 10)
+	stl.Font = Enum.Font.GothamBold
+	stl.TextSize = 10
+	stl.TextStrokeTransparency = 0.4
+	stl.TextColor3 = C.rgb(207, 216, 255)
+	stl.Text = ""
+	stl.Parent = bb
+	bb.Parent = body
+
+	m.Parent = W.enemies
+	e.model, e.body, e.baseColor, e.fill, e.barBg, e.stLabel = m, body, col, fill, barBg, stl
+end
+
+local function setBodyColor(e)
+	if not e.body or not e.body.Parent then return end
+	if e.flashUntil and clock < e.flashUntil then
+		e.body.Color = WHITE
+	elseif e.wind and e.wind > 0 then
+		e.body.Color = T.danger
+	elseif e.st.charm > clock then
+		e.body.Color = C.rgb(255, 140, 196)
+	elseif e.st.stun > clock then
+		e.body.Color = C.rgb(207, 216, 255)
+	else
+		e.body.Color = e.baseColor
+	end
+end
+
+local function updateEnemyGui(e)
+	if e.fill then
+		e.fill.Size = UDim2.fromScale(math.max(0, e.hp / e.maxHp), 1)
+		e.barBg.Visible = e.hp < e.maxHp or e.elite == true
+	end
+end
+
+local function statusText(e)
+	local s = {}
+	if e.st.sleep > clock then s[#s + 1] = "zZ" end
+	if e.st.stun > clock then s[#s + 1] = "STUN" end
+	if e.st.root > clock then s[#s + 1] = "ROOT" end
+	if e.st.charm > clock then s[#s + 1] = "CHARM" end
+	if e.st.slow > clock then s[#s + 1] = "SLOW" end
+	if e.st.burn > clock then s[#s + 1] = "BURN" end
+	return table.concat(s, " ")
+end
+
+local function makeEnemy(typ, lvl, pos, extra)
+	local et = C.ETYPES[typ]
+	local elite = extra and extra.elite
+	local hp = C.enemyHP(lvl) * et.hp * (elite and 4 or 1)
+	local e = {
+		type = typ, lvl = lvl, pos = flat(pos), r = et.r * (elite and 1.35 or 1), hp = hp, maxHp = hp,
+		dmg = C.enemyDMG(lvl) * et.dmg * (elite and 1.5 or 1), speed = et.speed * (elite and 1.1 or 1),
+		st = newStatus(), burnDps = 0, burnTick = 0, kv = Vector3.new(0, 0, 0), atkCd = rng:NextNumber(0.4, 1.2),
+		wind = 0, special = rng:NextNumber(1, 3), face = Vector3.new(0, 0, -1), aggro = false,
+		wander = rng:NextNumber(0, TAU), hitT = -9, phase = rng:NextNumber(0, TAU),
+	}
+	if extra then
+		for k, v in pairs(extra) do e[k] = v end
+	end
+	e.y = (typ == "wisp") and (e.r + 2.5) or e.r
+	buildEnemyModel(e)
+	enemies[#enemies + 1] = e
+	return e
+end
+
+local function removeEnemy(e)
+	e.dead = true
+	if e.model then e.model:Destroy() end
+	e.model = nil
+end
+
+-- ---------- combat core ----------
+local bossDefeated
+local function killEnemy(e, plr)
+	if e.dead then return end
+	if e.boss then
+		bossDefeated(e)
+		return
+	end
+	e.dead = true
+	local col = C.ETYPES[e.type].color
+	fxAll("burst", { pos = Vector3.new(e.pos.X, e.y, e.pos.Z), color = col, n = 24, speed = 26 })
+	if e.model then e.model:Destroy() end
+	if e.elite and e.owner and profiles[e.owner] then
+		local op = profiles[e.owner]
+		if op.mission and op.mission.type == "elite" then progMission(e.owner, 1) end
+	end
+	local prof = plr and profiles[plr]
+	if not prof then return end
+	local et = C.ETYPES[e.type]
+	local xp = math.floor((6 + e.lvl * 5) * et.xp * (e.elite and 5 or 1) * (e.minion and 0.3 or 1))
+	local souls = math.floor((2 + e.lvl * 1.5) * rng:NextNumber(0.7, 1.3) * (e.elite and 5 or 1) * (e.minion and 0.3 or 1))
+	if prof.sin == "greed" then souls = math.floor(souls * 1.6) end
+	prof.souls = prof.souls + souls
+	prof.kills = prof.kills + 1
+	fxTo(plr, "text", { pos = Vector3.new(e.pos.X, e.y + e.r + 2.5, e.pos.Z), str = "+" .. souls .. " souls", color = T.soul })
+	gainXP(plr, xp)
+	local m = prof.mission
+	if m and not e.minion then
+		if m.type == "slay" then
+			progMission(plr, 1)
+		elseif m.type == "hunt" and e.type == m.etype then
+			progMission(plr, 1)
+		elseif m.type == "shards" and rng:NextNumber() < 0.45 then
+			fxTo(plr, "text", { pos = Vector3.new(e.pos.X, e.y + e.r + 4, e.pos.Z), str = "Soul shard", color = T.ember })
+			progMission(plr, 1)
+		end
+	end
+	markDirty(plr)
+end
+
+local function applyStatus(e, st, prof)
+	if not st then return end
+	local typ, dur = st[1], st[2]
+	if typ == "burn" then
+		e.st.burn = math.max(e.st.burn, clock + dur)
+		if prof then e.burnDps = math.max(e.burnDps, C.skillPow(prof) * 0.45) end
+	else
+		local dd = dur * (e.boss and 0.3 or 1)
+		e.st[typ] = math.max(e.st[typ] or 0, clock + dd)
+	end
+end
+
+local function healPlayer(plr, amt, show)
+	local _, hrp, hum = charOf(plr)
+	if not hum then return end
+	local before = hum.Health
+	hum.Health = math.min(hum.MaxHealth, hum.Health + amt)
+	if show and hum.Health - before >= 1 then
+		fxTo(plr, "text", { pos = hrp.Position + Vector3.new(0, 3.5, 0), str = "+" .. math.floor(hum.Health - before), color = C.RARITY.uncommon.color })
+	end
+end
+
+local function damageEnemy(e, base, o, plr)
+	if e.dead then return end
+	local prof = plr and profiles[plr]
+	local d = base
+	if prof and prof.sin == "envy" then
+		local _, _, hum = charOf(plr)
+		if hum and e.hp / e.maxHp > hum.Health / hum.MaxHealth then d = d * 1.25 end
+	end
+	if o.vsCharm and e.st.charm > clock then d = d * o.vsCharm end
+	local crit = rng:NextNumber() < 0.1
+	if crit then d = d * 1.5 end
+	if o.exec then
+		if not e.boss and e.hp / e.maxHp <= o.exec then
+			d = e.hp + 1
+			fxAll("burst", { pos = Vector3.new(e.pos.X, e.y, e.pos.Z), color = C.SINS.greed.color, n = 20, speed = 20 })
+		elseif e.boss then
+			d = d * 1.6
+		end
+	end
+	d = math.max(1, math.floor(d + 0.5))
+	e.hp = e.hp - d
+	e.hitT = clock
+	e.aggro = true
+	if plr then e.lastHitBy = plr end
+	e.flashUntil = clock + 0.08
+	if e.st.sleep > clock and not (o.status and o.status[1] == "sleep") then e.st.sleep = 0 end
+	if o.status then applyStatus(e, o.status, prof) end
+	if o.charmChance and rng:NextNumber() < o.charmChance then applyStatus(e, { "charm", 2 }, prof) end
+	if (o.knock or o.pull) and not e.boss then
+		local from = o.from
+		if not from and plr then
+			local _, hrp = charOf(plr)
+			if hrp then from = flat(hrp.Position) end
+		end
+		if from then
+			local dir = flat(e.pos - from)
+			if dir.Magnitude > 0.01 then
+				dir = dir.Unit
+				if o.knock then e.kv = e.kv + dir * o.knock * (e.type == "brute" and 0.45 or 1) end
+				if o.pull then e.kv = e.kv - dir * o.pull end
+			end
+		end
+	end
+	if prof then
+		local ls = (o.lifesteal or 0) + (prof.sin == "gluttony" and 0.1 or 0)
+		if ls > 0 then healPlayer(plr, d * ls, false) end
+		if o.soulsOnHit then
+			prof.souls = prof.souls + o.soulsOnHit
+			markDirty(plr)
+		end
+		fxTo(plr, "text", { pos = Vector3.new(e.pos.X, e.y + e.r + 1, e.pos.Z), str = tostring(d), color = crit and GOLD or (o.color or WHITE), big = crit })
+	end
+	fxAll("burst", { pos = Vector3.new(e.pos.X, e.y, e.pos.Z), color = o.color or WHITE, n = crit and 10 or 5, speed = 14 })
+	setBodyColor(e)
+	updateEnemyGui(e)
+	if e.hp <= 0 then killEnemy(e, plr) end
+end
+
+local function aoe(center, r, dmg, o, plr)
+	local oo = copy(o)
+	oo.from = center
+	for _, e in ipairs(enemies) do
+		if not e.dead and d2(center, e.pos) < r + e.r then damageEnemy(e, dmg, oo, plr) end
+	end
+end
+local function lineHits(origin, dir, len, w, cb)
+	for _, e in ipairs(enemies) do
+		if not e.dead then
+			local rel = flat(e.pos - origin)
+			local t = rel:Dot(dir)
+			if t > -e.r and t < len + e.r then
+				local perp = math.abs(rel.X * dir.Z - rel.Z * dir.X)
+				if perp < w / 2 + e.r then cb(e) end
+			end
+		end
+	end
+end
+local function coneHits(origin, dir, range, half, cb)
+	local a0 = angleOf(dir)
+	for _, e in ipairs(enemies) do
+		if not e.dead then
+			local d = d2(origin, e.pos)
+			if d < range + e.r then
+				local da = angleOf(flat(e.pos - origin)) - a0
+				da = math.atan2(math.sin(da), math.cos(da))
+				if math.abs(da) < half + math.atan2(e.r, math.max(d, 0.1)) then cb(e) end
+			end
+		end
+	end
+end
+
+local onDied
+local function hurtPlayer(plr, d)
+	local c, hrp, hum = charOf(plr)
+	local st, prof = PS[plr], profiles[plr]
+	if not c or not st or not prof then return end
+	if clock < st.iframeUntil or st.skillDash then return end
+	local sd = C.SINS[prof.sin]
+	if sd.takenMult then d = d * sd.takenMult end
+	if st.blocking then
+		d = d * 0.25
+		st.mal = st.mal - 5
+		fxAll("burst", { pos = hrp.Position + hrp.CFrame.LookVector * 2, color = C.rgb(255, 233, 168), n = 8, speed = 18 })
+		if st.mal <= 0 then
+			st.mal = 0
+			st.stunUntil = clock + 0.9
+			st.blocking = false
+			fxTo(plr, "text", { pos = hrp.Position + Vector3.new(0, 4, 0), str = "GUARD BROKEN", color = C.rgb(255, 106, 106), big = true })
+		end
+	end
+	if st.shield > 0 then
+		local ab = math.min(st.shield, d)
+		st.shield = st.shield - ab
+		d = d - ab
+		if d <= 0 then
+			fxTo(plr, "text", { pos = hrp.Position + Vector3.new(0, 3.5, 0), str = "absorbed", color = C.SINS.greed.color })
+			return
+		end
+	end
+	d = math.max(1, math.floor(d + 0.5))
+	hum.Health = hum.Health - d
+	st.lastHurt = clock
+	st.iframeUntil = clock + 0.1
+	train(plr, "vit", d / 7)
+	fxTo(plr, "text", { pos = hrp.Position + Vector3.new(0, 3.5, 0), str = "-" .. d, color = C.rgb(255, 93, 108) })
+	notify(plr, "shake", { a = math.min(1, 0.15 + d / hum.MaxHealth * 3) })
+end
+
+-- ---------- projectiles & fields ----------
+local function projPart(pos, r, color)
+	return ePart({ Name = "Proj", Shape = Enum.PartType.Ball, Size = Vector3.new(r * 2, r * 2, r * 2), CFrame = CFrame.new(pos), Color = color, Material = Enum.Material.Neon, CastShadow = false, Parent = W.fx })
+end
+local function enemyShot(pos, vel, r, dmg, color)
+	local p = Vector3.new(pos.X, 3, pos.Z)
+	eproj[#eproj + 1] = { pos = p, vel = vel, r = r, dmg = dmg, life = 2.6, part = projPart(p, r, color) }
+end
+
+local function explodeProj(p)
+	if p.exploded then return end
+	p.exploded = true
+	aoe(flat(p.pos), p.explode, p.dmg * 0.6, p.o, p.owner)
+	fxAll("disc", { pos = flat(p.pos), r = p.explode, color = p.color, dur = 0.25 })
+	fxAll("burst", { pos = p.pos, color = p.color, n = 24, speed = 30 })
+end
+
+local function updateProjectiles(dt)
+	local keep = {}
+	for _, p in ipairs(pproj) do
+		if p.homing then
+			local best, bd = nil, 50
+			for _, e in ipairs(enemies) do
+				if not e.dead and not p.hit[e] then
+					local d = d2(p.pos, e.pos)
+					if d < bd then best, bd = e, d end
+				end
+			end
+			if best then
+				local ta = angleOf(flat(best.pos - p.pos))
+				local ca = angleOf(p.vel)
+				local da = math.atan2(math.sin(ta - ca), math.cos(ta - ca))
+				local na = ca + clamp(da, -7 * dt, 7 * dt)
+				p.vel = dirFromAngle(na) * p.vel.Magnitude
+			end
+		end
+		p.pos = p.pos + p.vel * dt
+		p.life = p.life - dt
+		for _, e in ipairs(enemies) do
+			if p.life > 0 and not e.dead and not p.hit[e] and d2(p.pos, e.pos) < p.r + e.r then
+				p.hit[e] = true
+				local o = copy(p.o)
+				o.from = flat(p.pos - p.vel * 0.05)
+				damageEnemy(e, p.dmg, o, p.owner)
+				if p.explode then explodeProj(p) end
+				p.pierce = p.pierce - 1
+				if p.pierce < 0 then p.life = 0 end
+			end
+		end
+		if p.life <= 0 then
+			if p.explode then explodeProj(p) end
+			p.part:Destroy()
+		else
+			p.part.CFrame = CFrame.new(p.pos)
+			keep[#keep + 1] = p
+		end
+	end
+	pproj = keep
+
+	keep = {}
+	for _, p in ipairs(eproj) do
+		p.pos = p.pos + p.vel * dt
+		p.life = p.life - dt
+		for _, plr in ipairs(Players:GetPlayers()) do
+			local c, hrp = charOf(plr)
+			if c and p.life > 0 and d2(p.pos, hrp.Position) < p.r + WR.playerR then
+				hurtPlayer(plr, p.dmg)
+				p.life = 0
+				fxAll("burst", { pos = p.pos, color = p.part.Color, n = 6, speed = 12 })
+			end
+		end
+		if inVillage(p.pos) then p.life = 0 end
+		if p.life > 0 then
+			for _, k in ipairs(W.rocks) do
+				if math.abs(p.pos.X - k.x) < k.r and math.abs(p.pos.Z - k.z) < k.r then
+					local dx, dz = p.pos.X - k.x, p.pos.Z - k.z
+					if math.sqrt(dx * dx + dz * dz) < k.r * 0.9 then p.life = 0 break end
+				end
+			end
+		end
+		if p.life <= 0 then
+			p.part:Destroy()
+		else
+			p.part.CFrame = CFrame.new(p.pos)
+			keep[#keep + 1] = p
+		end
+	end
+	eproj = keep
+end
+
+local function updateFields(dt)
+	local keep = {}
+	for _, f in ipairs(fields) do
+		f.tick = f.tick - dt
+		for _, e in ipairs(enemies) do
+			if not e.dead then
+				local d = d2(e.pos, f.pos)
+				if d < f.r + e.r then
+					if f.pull > 0 and not e.boss and d > 1 then
+						e.pos = e.pos + flat(f.pos - e.pos).Unit * f.pull * dt
+					end
+					if f.o.status then applyStatus(e, f.o.status, profiles[f.owner]) end
+				end
+			end
+		end
+		if f.tick <= 0 then
+			f.tick = 0.25
+			for _, e in ipairs(enemies) do
+				if not e.dead and d2(e.pos, f.pos) < f.r + e.r then damageEnemy(e, f.dps * 0.25, { color = f.color }, f.owner) end
+			end
+		end
+		if clock < f.untilT then keep[#keep + 1] = f end
+	end
+	fields = keep
+end
+
+-- ---------- skills ----------
+local function castSkill(plr, sk, m, aim)
+	local c, hrp = charOf(plr)
+	if not c then return end
+	local prof, st = profiles[plr], PS[plr]
+	local color = sk.color
+	local pow = C.skillPow(prof) * (sk.dmg or 1) * (1 + 0.12 * (m - 1)) * dmgMult(plr)
+	local origin = flat(hrp.Position)
+	local dir = aimDir(hrp, aim)
+	local o = { status = sk.status, knock = sk.knock, lifesteal = sk.lifesteal, exec = sk.exec, vsCharm = sk.vsCharm, color = color, soulsOnHit = sk.soulsOnHit }
+
+	if sk.kind == "proj" then
+		local n = sk.count or 1
+		local a0 = angleOf(dir)
+		for i = 1, n do
+			local a = a0
+			if n > 1 then a = a0 + ((i - 1) / (n - 1) - 0.5) * (sk.spread or 0) end
+			local dv = dirFromAngle(a)
+			local pos = origin + dv * 2 + Vector3.new(0, 3, 0)
+			pproj[#pproj + 1] = { pos = pos, vel = dv * sk.speed, r = sk.r, dmg = pow, life = sk.life, pierce = sk.pierce or 0, homing = sk.homing, explode = sk.explode, o = o, color = color, hit = {}, owner = plr, part = projPart(pos, sk.r, color) }
+		end
+	elseif sk.kind == "nova" then
+		local at = origin
+		if sk.at == "cursor" then at = cursorPoint(hrp, aim, WR.cursorRange) end
+		local function fire()
+			local center = at
+			if sk.at == "self" then
+				local _, h2 = charOf(plr)
+				if not h2 then return end
+				center = flat(h2.Position)
+			end
+			local oo = copy(o)
+			oo.pull = sk.pull
+			aoe(center, sk.rad, pow, oo, plr)
+			if sk.heal then
+				local _, _, hum = charOf(plr)
+				if hum then healPlayer(plr, hum.MaxHealth * sk.heal, true) end
+			end
+			fxAll("ring", { pos = center, r0 = sk.rad * 0.2, r1 = sk.rad, color = color, dur = 0.4 })
+			fxAll("disc", { pos = center, r = sk.rad, color = color, dur = 0.25 })
+			fxAll("burst", { pos = center + Vector3.new(0, 1, 0), color = color, n = math.min(60, 16 + sk.rad), speed = sk.rad * 1.4 })
+		end
+		if sk.delay then
+			fxAll("tele", { pos = at, r = sk.rad, dur = sk.delay, color = color, follow = (sk.at == "self") and hrp or nil })
+			task.delay(sk.delay, fire)
+		else
+			fire()
+		end
+	elseif sk.kind == "cone" then
+		coneHits(origin, dir, sk.range, sk.half, function(e) damageEnemy(e, pow, o, plr) end)
+		fxAll("cone", { pos = origin, dir = dir, range = sk.range, half = sk.half, color = color, dur = 0.3 })
+	elseif sk.kind == "beam" then
+		local function fire()
+			lineHits(origin, dir, sk.len, sk.width, function(e)
+				local oo = copy(o)
+				oo.from = origin
+				damageEnemy(e, pow, oo, plr)
+			end)
+			fxAll("beam", { pos = origin, dir = dir, len = sk.len, w = sk.width, color = color, dur = 0.25 })
+		end
+		if sk.delay and sk.delay > 0 then
+			fxAll("teleLine", { pos = origin, dir = dir, len = sk.len, w = sk.width, color = color, dur = sk.delay })
+			task.delay(sk.delay, fire)
+		else
+			fire()
+		end
+	elseif sk.kind == "rain" then
+		local cpt = cursorPoint(hrp, aim, WR.cursorRange)
+		for i = 1, sk.n do
+			task.delay((i - 1) * sk.interval, function()
+				local rr = math.sqrt(rng:NextNumber()) * sk.area
+				local aa = rng:NextNumber() * TAU
+				local p = cpt + Vector3.new(math.cos(aa) * rr, 0, math.sin(aa) * rr)
+				fxAll("tele", { pos = p, r = sk.rad, dur = 0.35, color = color })
+				task.delay(0.35, function()
+					aoe(p, sk.rad, pow, o, plr)
+					fxAll("pillar", { pos = p, r = sk.rad, color = color, dur = 0.35 })
+					fxAll("burst", { pos = p + Vector3.new(0, 1, 0), color = color, n = 16, speed = 26 })
+				end)
+			end)
+		end
+	elseif sk.kind == "dash" then
+		local dur = sk.dist / 90
+		st.skillDash = { untilT = clock + dur + 0.05, dmg = pow, o = o, hit = {}, w = sk.width, color = color }
+		st.iframeUntil = math.max(st.iframeUntil, clock + dur + 0.15)
+		notify(plr, "forceDash", { dir = dir, speed = 90, dur = dur })
+		fxAll("burst", { pos = hrp.Position, color = color, n = 20, speed = 20 })
+	elseif sk.kind == "blink" then
+		local tpos = cursorPoint(hrp, aim, sk.range)
+		for _, k in ipairs(W.rocks) do
+			local rel = flat(tpos - Vector3.new(k.x, 0, k.z))
+			if rel.Magnitude < k.r + 2 then tpos = Vector3.new(k.x, 0, k.z) + (rel.Magnitude > 0.01 and rel.Unit or Vector3.new(1, 0, 0)) * (k.r + 2) end
+		end
+		fxAll("burst", { pos = hrp.Position, color = color, n = 24, speed = 22 })
+		moveCharTo(c, hrp, tpos)
+		aoe(tpos, sk.rad, pow, o, plr)
+		fxAll("ring", { pos = tpos, r0 = 1, r1 = sk.rad, color = color, dur = 0.35 })
+		fxAll("burst", { pos = tpos + Vector3.new(0, 2, 0), color = color, n = 30, speed = 30 })
+	elseif sk.kind == "vortex" then
+		local cpt = cursorPoint(hrp, aim, WR.cursorRange)
+		fields[#fields + 1] = { pos = cpt, r = sk.rad, untilT = clock + sk.dur, pull = sk.pull or 0, dps = pow * sk.dps, tick = 0, o = o, color = color, owner = plr }
+		fxAll("field", { pos = cpt, r = sk.rad, dur = sk.dur, color = color, pull = (sk.pull or 0) > 0 })
+	elseif sk.kind == "shield" then
+		local _, _, hum = charOf(plr)
+		st.shield = hum.MaxHealth * sk.amount
+		st.shieldUntil = clock + sk.dur
+		fxAll("ring", { pos = origin, r0 = 7, r1 = 3, color = color, dur = 0.4 })
+		fxAll("burst", { pos = hrp.Position, color = color, n = 30, speed = 18 })
+	end
+end
+
+local function trySkill(plr, key, aim)
+	local c = charOf(plr)
+	local prof, st = profiles[plr], PS[plr]
+	if not c or not prof or not prof.created or clock < st.stunUntil then return end
+	local sk = C.findSkill(prof, key)
+	if not sk then return end
+	if prof.level < sk.u then
+		toast(plr, sk.name .. " unlocks at level " .. sk.u, T.ash, "lk" .. key)
+		return
+	end
+	if (st.cd[sk.id] or 0) > clock then return end
+	if st.mal < sk.cost then
+		toast(plr, "Not enough Malice. Hold C to charge.", T.mal, "mal")
+		return
+	end
+	st.mal = st.mal - sk.cost
+	local m = C.mastery(prof, sk.id)
+	local cd = sk.cd * (1 - 0.04 * (m - 1)) * (st.awaken and 0.7 or 1)
+	st.cd[sk.id] = clock + cd
+	notify(plr, "cd", { id = sk.id, dur = cd })
+	prof.mastery[sk.id] = (prof.mastery[sk.id] or 0) + 1
+	local after = C.mastery(prof, sk.id)
+	if after > m then toast(plr, sk.name .. " reached mastery " .. after, sk.color) end
+	markDirty(plr)
+	castSkill(plr, sk, m, aim)
+end
+
+local function doMelee(plr, aim)
+	local c, hrp = charOf(plr)
+	local prof, st = profiles[plr], PS[plr]
+	if not c or not prof or not prof.created then return end
+	if clock < st.meleeAt or st.charging or st.blocking or clock < st.stunUntil or st.skillDash then return end
+	local since = clock - st.lastSwing
+	if since < 0.65 then st.combo = (st.combo + 1) % 3 else st.combo = 0 end
+	st.lastSwing = clock
+	local dir = aimDir(hrp, aim)
+	local mult = ({ 1, 1.1, 1.7 })[st.combo + 1]
+	local dmg = C.meleePow(prof) * mult * dmgMult(plr)
+	local origin = flat(hrp.Position)
+	local hit = 0
+	local o = { knock = (st.combo == 2) and 34 or 7, charmChance = (prof.sin == "lust") and 0.15 or nil, color = C.rgb(255, 226, 196) }
+	coneHits(origin, dir, WR.meleeRange, WR.meleeHalf, function(e)
+		damageEnemy(e, dmg, o, plr)
+		hit = hit + 1
+	end)
+	local a0 = angleOf(dir)
+	for _, dm in ipairs(W.dummies) do
+		if d2(origin, dm.pos) < WR.meleeRange + 1.5 then
+			local da = angleOf(flat(dm.pos - origin)) - a0
+			da = math.atan2(math.sin(da), math.cos(da))
+			if math.abs(da) < WR.meleeHalf + 0.4 then
+				hit = hit + 1
+				fxTo(plr, "text", { pos = dm.pos + Vector3.new(0, 6.5, 0), str = tostring(math.floor(dmg + 0.5)), color = C.rgb(204, 204, 204) })
+				fxAll("burst", { pos = dm.pos + Vector3.new(0, 4.3, 0), color = C.rgb(216, 199, 154), n = 6, speed = 10 })
+			end
+		end
+	end
+	if hit > 0 then train(plr, "str", math.min(3, hit)) end
+	fxAll("slash", { pos = hrp.Position, dir = dir, r = WR.meleeRange * 0.75, color = (st.combo == 2) and C.SINS[prof.sin].color or T.bone, flip = st.combo % 2 == 1 })
+	st.meleeAt = clock + ((st.combo == 2) and 0.46 or 0.26)
+end
+
+local function doDash(plr)
+	local c, hrp = charOf(plr)
+	local prof, st = profiles[plr], PS[plr]
+	if not c or not prof then return end
+	if clock < st.dashAt or clock < st.stunUntil or st.charging then return end
+	st.dashAt = clock + 0.75
+	st.dashUntil = clock + 0.22
+	st.iframeUntil = math.max(st.iframeUntil, clock + 0.25)
+	train(plr, "agi", 2)
+	fxAll("burst", { pos = hrp.Position, color = T.bone, n = 8, speed = 12 })
+end
+
+local function toggleAwaken(plr)
+	local c, hrp = charOf(plr)
+	local prof, st = profiles[plr], PS[plr]
+	if not c or not prof then return end
+	if st.awaken then
+		st.awaken = false
+		st.awakenCdUntil = clock + 30
+		return
+	end
+	if prof.level < 12 then return toast(plr, "Sin Awakening unlocks at level 12", T.ash, "awk") end
+	if clock < st.awakenCdUntil then return toast(plr, "Awakening recovers in " .. math.ceil(st.awakenCdUntil - clock) .. "s", T.ash, "awk") end
+	if st.mal < 40 then return toast(plr, "Need 40 Malice to awaken", T.mal, "awk") end
+	st.awaken = true
+	st.awakenUntil = clock + 20
+	local col = C.SINS[prof.sin].color
+	banner(plr, C.SINS[prof.sin].name .. " Awakened", "damage +40% · speed +25% · cooldowns -30%", col)
+	fxAll("ring", { pos = flat(hrp.Position), r0 = 1, r1 = 30, color = col, dur = 0.6 })
+	fxAll("burst", { pos = hrp.Position, color = col, n = 60, speed = 40 })
+	fxAll("aura", { char = c, color = col, on = true })
+end
+
+-- ---------- spawning ----------
+local function inArena(pos, pad)
+	for i, g in ipairs(W.gates) do
+		if d2(pos, g.pos) < WR.arenaR + (pad or 0) then return g end
+	end
+	return nil
+end
+local function spawnPoint(center, minD, maxD)
+	for _ = 1, 12 do
+		local a = rng:NextNumber() * TAU
+		local d = rng:NextNumber(minD, maxD)
+		local p = center + Vector3.new(math.cos(a) * d, 0, math.sin(a) * d)
+		local ok = p.Magnitude < WR.R - 8 and not inVillage(p, 10) and not inArena(p, 6)
+		if ok then
+			for _, k in ipairs(W.rocks) do
+				local dx, dz = k.x - p.X, k.z - p.Z
+				if math.sqrt(dx * dx + dz * dz) < k.r + 4 then ok = false break end
+			end
+		end
+		if ok then return p end
+	end
+	return nil
+end
+local function enemyTypeFor(l)
+	local avail, tot = {}, 0
+	for _, k in ipairs(C.ETYPE_ORDER) do
+		if C.ETYPES[k].minL <= l then
+			avail[#avail + 1] = k
+			tot = tot + C.ETYPES[k].w
+		end
+	end
+	local r = rng:NextNumber() * tot
+	for _, k in ipairs(avail) do
+		r = r - C.ETYPES[k].w
+		if r <= 0 then return k end
+	end
+	return "imp"
+end
+
+local ELITE_NAMES = { "Ashmaw", "Grieveclaw", "Hollowtooth", "Cinderjaw", "Mourngrin", "Soot Widow" }
+local function spawner()
+	local total = 0
+	for _, e in ipairs(enemies) do
+		if not e.dead and not e.boss and not e.minion then total = total + 1 end
+	end
+	for _, plr in ipairs(Players:GetPlayers()) do
+		local prof, st = profiles[plr], PS[plr]
+		local c, hrp = charOf(plr)
+		if c and prof and prof.created and not st.gate then
+			local pos = flat(hrp.Position)
+			local near = 0
+			for _, e in ipairs(enemies) do
+				if not e.dead and not e.boss and not e.minion and d2(e.pos, pos) < 120 then near = near + 1 end
+			end
+			local target = inVillage(pos, 25) and 8 or 16
+			if near < target and total < 60 then
+				local p = spawnPoint(pos, 75, 110)
+				if p then
+					local l = C.enemyLevelAt(p.X, p.Z)
+					makeEnemy(enemyTypeFor(l), l, p)
+					total = total + 1
+				end
+			end
+			if prof.mission and prof.mission.type == "elite" then
+				local has = false
+				for _, e in ipairs(enemies) do
+					if not e.dead and e.elite and e.owner == plr then has = true break end
+				end
+				if not has then
+					local p = spawnPoint(pos, 85, 120)
+					if p then
+						local l = math.max(C.enemyLevelAt(p.X, p.Z), prof.level)
+						local ok = {}
+						for _, k in ipairs(C.ETYPE_ORDER) do
+							if C.ETYPES[k].minL <= l then ok[#ok + 1] = k end
+						end
+						local el = makeEnemy(pick(ok), l, p, { elite = true, owner = plr, name = pick(ELITE_NAMES), aggro = true })
+						toast(plr, el.name .. " has risen. Follow the gold marker.", T.ember)
+						notify(plr, "elite", { model = el.model })
+					end
+				end
+			end
+		end
+	end
+end
+
+-- ---------- bosses ----------
+local function fightPlayers(gate)
+	local list = {}
+	for _, plr in ipairs(Players:GetPlayers()) do
+		local st = PS[plr]
+		if st and st.gate == gate and charOf(plr) then list[#list + 1] = plr end
+	end
+	return list
+end
+local function bossNotify(gate, payload)
+	for _, plr in ipairs(Players:GetPlayers()) do
+		local st = PS[plr]
+		if st and st.gate == gate then notify(plr, "boss", payload) end
+	end
+end
+
+local function spawnBoss(i)
+	local B = C.BOSSES[i]
+	local g = W.gates[i]
+	local lvl = B.req + 2
+	for _, e in ipairs(enemies) do
+		if not e.dead and not e.boss and d2(e.pos, g.pos) < WR.arenaR + 10 then removeEnemy(e) end
+	end
+	local n = 0
+	for _, plr in ipairs(Players:GetPlayers()) do
+		local c, hrp = charOf(plr)
+		local prof = profiles[plr]
+		if c and prof and prof.created and prof.level >= B.req and d2(hrp.Position, g.pos) < WR.arenaR then
+			PS[plr].gate = i
+			n = n + 1
+		end
+	end
+	local hp = C.enemyHP(lvl) * 10 * (1 + 0.6 * math.max(0, n - 1))
+	local start = g.pos - g.pos.Unit * 14
+	local e = {
+		boss = true, bi = i, gate = i, type = "imp", name = B.name, lvl = lvl, pos = flat(start), r = B.r, y = B.r,
+		hp = hp, maxHp = hp, dmg = C.enemyDMG(lvl) * 1.25, speed = B.speed, st = newStatus(), burnDps = 0, burnTick = 0,
+		kv = Vector3.new(0, 0, 0), face = Vector3.new(0, 0, -1), hitT = -9, atkAt = clock + 1.6, busyUntil = 0, touchAt = 0, wind = 0,
+	}
+	buildEnemyModel(e)
+	enemies[#enemies + 1] = e
+	activeBoss[i] = e
+	local col = C.SINS[B.sin].color
+	for _, plr in ipairs(fightPlayers(i)) do
+		banner(plr, B.name, "Hollow Prince of " .. C.SINS[B.sin].name .. " · level " .. lvl, col)
+		notify(plr, "boss", { name = B.name, color = col, frac = 1, hp = hp, show = true })
+		notify(plr, "shake", { a = 0.8 })
+	end
+end
+
+local function despawnBoss(i)
+	local e = activeBoss[i]
+	activeBoss[i] = nil
+	if e then removeEnemy(e) end
+	for _, m in ipairs(enemies) do
+		if m.minion and m.gate == i then removeEnemy(m) end
+	end
+	for _, plr in ipairs(Players:GetPlayers()) do
+		local st = PS[plr]
+		if st and st.gate == i then
+			st.gate = nil
+			st.mustLeave = i
+			notify(plr, "boss", { show = false })
+		end
+	end
+end
+
+bossDefeated = function(e)
+	if e.dead then return end
+	local i = e.bi
+	local B = C.BOSSES[i]
+	local col = C.SINS[B.sin].color
+	e.dead = true
+	fxAll("burst", { pos = Vector3.new(e.pos.X, e.y, e.pos.Z), color = col, n = 120, speed = 50 })
+	fxAll("ring", { pos = e.pos, r0 = 2, r1 = 50, color = col, dur = 1 })
+	if e.model then e.model:Destroy() end
+	activeBoss[i] = nil
+	for _, m in ipairs(enemies) do
+		if m.minion and m.gate == i then removeEnemy(m) end
+	end
+	for _, plr in ipairs(Players:GetPlayers()) do
+		local st, prof = PS[plr], profiles[plr]
+		if st and prof and st.gate == i then
+			st.gate = nil
+			st.mustLeave = i
+			notify(plr, "boss", { show = false })
+			notify(plr, "shake", { a = 1 })
+			if not C.hasBoss(prof, i) then
+				prof.bosses[#prof.bosses + 1] = i
+				local souls = 400 * i
+				prof.spins = prof.spins + 3
+				prof.souls = prof.souls + souls
+				banner(plr, "Seal Broken", B.name .. " falls · +3 spins · +" .. souls .. " souls", col)
+				gainXP(plr, math.floor(C.xpNeed(prof.level) * 1.2))
+				if #prof.bosses == 7 then task.delay(2.6, function() notify(plr, "victory", {}) end) end
+			else
+				local souls = 120 * i
+				prof.souls = prof.souls + souls
+				banner(plr, B.name .. " falls again", "+" .. souls .. " souls", col)
+				gainXP(plr, math.floor(C.xpNeed(prof.level) * 0.4))
+			end
+			markDirty(plr)
+			task.spawn(Data.save, plr.UserId, prof)
+		end
+	end
+end
+
+local function updateBoss(e, dt)
+	local B = C.BOSSES[e.bi]
+	local col = C.SINS[B.sin].color
+	local players = fightPlayers(e.gate)
+	if #players == 0 then
+		despawnBoss(e.gate)
+		return
+	end
+	local target, tpos, td = nil, nil, 1e9
+	for _, plr in ipairs(players) do
+		local _, hrp = charOf(plr)
+		local d = d2(hrp.Position, e.pos)
+		if d < td then target, tpos, td = plr, flat(hrp.Position), d end
+	end
+	local enr = e.hp < e.maxHp * 0.5
+	local sp = enr and 1.35 or 1
+	local function alive() return not e.dead and activeBoss[e.gate] == e end
+
+	for _, plr in ipairs(players) do
+		local _, hrp = charOf(plr)
+		if d2(hrp.Position, e.pos) < e.r + WR.playerR and clock > e.touchAt then
+			e.touchAt = clock + 0.7
+			hurtPlayer(plr, e.dmg * 0.6)
+		end
+	end
+	if e.st.stun > clock or e.st.sleep > clock then return end
+
+	if e.charge then
+		e.pos = e.pos + e.charge.vel * dt
+		for _, plr in ipairs(players) do
+			local _, hrp = charOf(plr)
+			if not e.charge.hit[plr] and d2(hrp.Position, e.pos) < e.r + WR.playerR + 0.8 then
+				e.charge.hit[plr] = true
+				hurtPlayer(plr, e.dmg * 1.6)
+			end
+		end
+		if clock > e.charge.untilT then e.charge = nil end
+		return
+	end
+	if e.pullUntil and clock < e.pullUntil then return end
+	if e.spinUntil and clock < e.spinUntil then
+		e.spinAcc = (e.spinAcc or 0) + dt
+		while e.spinAcc > 0.085 do
+			e.spinAcc = e.spinAcc - 0.085
+			e.spin = e.spin + 0.33
+			local k = enr and 3 or 2
+			for j = 0, k - 1 do
+				local a = e.spin + j * TAU / k
+				enemyShot(e.pos, dirFromAngle(a) * 28, 1, e.dmg * 0.6, col)
+			end
+		end
+		return
+	end
+	if clock < e.busyUntil then return end
+
+	local toT = flat(tpos - e.pos)
+	if toT.Magnitude > 0.1 then e.face = toT.Unit end
+	if td > 18 then
+		local s = e.speed * sp * ((e.st.slow > clock) and 0.6 or 1) * ((e.st.root > clock) and 0 or 1)
+		e.pos = e.pos + e.face * s * dt
+	end
+	if clock < e.atkAt then return end
+	e.atkAt = clock + rng:NextNumber(0.9, 1.5) / sp
+	local atk = pick(B.atks)
+
+	if atk == "slam" then
+		local n = enr and 3 or 1
+		for k = 1, n do
+			task.delay((k - 1) * 0.4, function()
+				if not alive() then return end
+				local x = tpos
+				local tp = target and target.Character and target.Character:FindFirstChild("HumanoidRootPart")
+				if tp then x = flat(tp.Position) end
+				local delay = enr and 0.7 or 0.9
+				fxAll("tele", { pos = x, r = 14, dur = delay, color = T.danger, enemy = true })
+				task.delay(delay, function()
+					if not alive() then return end
+					for _, plr in ipairs(fightPlayers(e.gate)) do
+						local _, hrp = charOf(plr)
+						if hrp and d2(hrp.Position, x) < 14.5 then hurtPlayer(plr, e.dmg * 1.4) end
+					end
+					fxAll("disc", { pos = x, r = 14, color = col, dur = 0.25 })
+					fxAll("burst", { pos = x + Vector3.new(0, 1, 0), color = col, n = 24, speed = 30 })
+				end)
+			end)
+		end
+		e.busyUntil = clock + 0.5 + n * 0.4
+	elseif atk == "burst" then
+		e.busyUntil = clock + 0.6
+		fxAll("ring", { pos = e.pos, r0 = e.r + 5, r1 = e.r, color = T.danger, dur = 0.5 })
+		local function fire(off)
+			if not alive() then return end
+			local n = enr and 22 or 16
+			for k = 0, n - 1 do
+				enemyShot(e.pos, dirFromAngle(off + k * TAU / n) * 31, 1.1, e.dmg * 0.8, col)
+			end
+		end
+		task.delay(0.5, function() fire(0) end)
+		if enr then task.delay(0.9, function() fire(TAU / 44) end) end
+	elseif atk == "aimed" then
+		e.busyUntil = clock + 1
+		for v = 0, 2 do
+			task.delay(0.3 + v * 0.25, function()
+				if not alive() then return end
+				local tp = target and target.Character and target.Character:FindFirstChild("HumanoidRootPart")
+				local aimAt = tp and flat(tp.Position) or tpos
+				local a0 = angleOf(flat(aimAt - e.pos))
+				for k = 0, 4 do
+					enemyShot(e.pos, dirFromAngle(a0 + (k / 4 - 0.5) * 0.6) * 47, 0.9, e.dmg * 0.7, col)
+				end
+			end)
+		end
+	elseif atk == "charge" then
+		local delay = enr and 0.55 or 0.75
+		local dir = e.face
+		e.busyUntil = clock + delay + 0.1
+		fxAll("teleLine", { pos = e.pos, dir = dir, len = 77, w = e.r * 2, color = T.danger, dur = delay, enemy = true })
+		task.delay(delay, function()
+			if not alive() then return end
+			e.charge = { untilT = clock + 0.6, vel = dir * 120, hit = {} }
+		end)
+	elseif atk == "summon" then
+		e.busyUntil = clock + 0.8
+		local n = enr and 5 or 3
+		for k = 0, n - 1 do
+			local a = k * TAU / n
+			local l = math.max(1, e.lvl - 4)
+			local mt = (l > 6) and pick({ "imp", "hound" }) or "imp"
+			local mn = makeEnemy(mt, l, e.pos + Vector3.new(math.cos(a) * 11, 0, math.sin(a) * 11), { minion = true, gate = e.gate, aggro = true })
+			fxAll("burst", { pos = Vector3.new(mn.pos.X, mn.y, mn.pos.Z), color = col, n = 14, speed = 18 })
+		end
+	elseif atk == "pull" then
+		e.pullUntil = clock + 1.6
+		for _, plr in ipairs(players) do notify(plr, "pull", { target = e.pos, dur = 1.6, speed = 20 }) end
+		fxAll("field", { pos = e.pos, r = 34, dur = 1.6, color = T.danger, pull = true })
+		task.delay(1.6, function()
+			if not alive() then return end
+			fxAll("tele", { pos = e.pos, r = 20, dur = 0.35, color = T.danger, enemy = true })
+			task.delay(0.35, function()
+				if not alive() then return end
+				for _, plr in ipairs(fightPlayers(e.gate)) do
+					local _, hrp = charOf(plr)
+					if hrp and d2(hrp.Position, e.pos) < 20 then hurtPlayer(plr, e.dmg * 1.5) end
+				end
+				fxAll("disc", { pos = e.pos, r = 20, color = col, dur = 0.25 })
+			end)
+			e.busyUntil = clock + 0.5
+		end)
+	elseif atk == "spiral" then
+		e.spinUntil = clock + 2.4
+		e.spin = rng:NextNumber() * TAU
+		e.spinAcc = 0
+	end
+end
+
+-- ---------- enemy AI ----------
+local function nearestPlayer(pos)
+	local best, bhrp, bd = nil, nil, 1e9
+	for _, plr in ipairs(Players:GetPlayers()) do
+		local c, hrp = charOf(plr)
+		local prof = profiles[plr]
+		if c and prof and prof.created then
+			local d = d2(hrp.Position, pos)
+			if d < bd then best, bhrp, bd = plr, hrp, d end
+		end
+	end
+	return best, bhrp, bd
+end
+
+local function resolveRocks(e)
+	for _, k in ipairs(W.rocks) do
+		local dx, dz = e.pos.X - k.x, e.pos.Z - k.z
+		if math.abs(dx) < k.r + e.r and math.abs(dz) < k.r + e.r then
+			local d = math.sqrt(dx * dx + dz * dz)
+			local m = k.r * 0.95 + e.r
+			if d < m and d > 0.01 then e.pos = Vector3.new(k.x + dx / d * m, 0, k.z + dz / d * m) end
+		end
+	end
+end
+
+local function updateEnemies(dt)
+	for _, e in ipairs(enemies) do
+		if not e.dead then
+			-- burn ticks
+			if e.st.burn > clock then
+				e.burnTick = e.burnTick - dt
+				if e.burnTick <= 0 then
+					e.burnTick = 0.5
+					local d = math.max(1, math.floor(e.burnDps * 0.5 + 0.5))
+					e.hp = e.hp - d
+					if e.lastHitBy then fxTo(e.lastHitBy, "text", { pos = Vector3.new(e.pos.X, e.y + e.r, e.pos.Z), str = tostring(d), color = C.rgb(255, 140, 74) }) end
+					updateEnemyGui(e)
+					if e.hp <= 0 then killEnemy(e, e.lastHitBy) end
+				end
+			end
+		end
+		if not e.dead then
+			e.pos = e.pos + e.kv * dt
+			e.kv = e.kv * (0.002 ^ dt)
+			if e.boss then
+				updateBoss(e, dt)
+			else
+				local plr, hrp, d = nearestPlayer(e.pos)
+				if not e.minion and not e.elite and d > 160 then
+					removeEnemy(e)
+				else
+					if d < 62 or e.hitT > clock - 5 then e.aggro = true end
+					local disabled = e.st.stun > clock or e.st.sleep > clock
+					local spd = e.speed * ((e.st.slow > clock) and 0.5 or 1) * ((e.st.root > clock) and 0 or 1)
+					e.atkCd = e.atkCd - dt
+					e.special = e.special - dt
+					if disabled then
+						if e.wind > 0 then e.wind = 0 setBodyColor(e) end
+					elseif e.st.charm > clock or not hrp then
+						e.wander = e.wander + rng:NextNumber(-2, 2) * dt
+						e.pos = e.pos + dirFromAngle(e.wander) * spd * 0.3 * dt
+						e.face = dirFromAngle(e.wander)
+						e.wind = 0
+					elseif not e.aggro then
+						e.wander = e.wander + rng:NextNumber(-1.5, 1.5) * dt
+						e.pos = e.pos + dirFromAngle(e.wander) * spd * 0.25 * dt
+						e.face = dirFromAngle(e.wander)
+					elseif e.charge then
+						e.pos = e.pos + e.charge.vel * dt
+						if not e.charge.hit and d2(e.pos, hrp.Position) < e.r + WR.playerR + 0.5 then
+							e.charge.hit = true
+							hurtPlayer(plr, e.dmg * 1.3)
+						end
+						if clock > e.charge.untilT then e.charge = nil end
+					elseif e.wind > 0 then
+						e.wind = e.wind - dt
+						if e.wind <= 0 then
+							e.wind = 0
+							setBodyColor(e)
+							if e.windKind == "melee" then
+								if d2(e.pos, hrp.Position) < e.r + WR.playerR + 3.2 then hurtPlayer(plr, e.dmg) end
+								fxAll("slash", { pos = Vector3.new(e.pos.X, e.y, e.pos.Z), dir = e.face, r = e.r + 2.5, color = T.danger })
+							elseif e.windKind == "shoot" then
+								enemyShot(e.pos, flat(hrp.Position - e.pos).Unit * 36, 0.85, e.dmg, C.ETYPES[e.type].color)
+							elseif e.windKind == "leap" then
+								e.charge = { untilT = clock + 0.22, vel = e.face * 86 }
+							elseif e.windKind == "charge" then
+								e.charge = { untilT = clock + 0.55, vel = e.face * 67 }
+							end
+							e.atkCd = (e.type == "wisp") and 2.2 or 1.1
+						end
+					else
+						local to = flat(hrp.Position - e.pos)
+						if to.Magnitude > 0.05 then e.face = to.Unit end
+						if e.type == "wisp" then
+							local want = 0
+							if d > 36 then want = 1 elseif d < 26 then want = -1 end
+							local side = Vector3.new(-e.face.Z, 0, e.face.X)
+							e.pos = e.pos + e.face * spd * want * dt + side * spd * 0.4 * dt * math.sin(clock + e.wander)
+							if d < 55 and e.atkCd <= 0 then
+								e.wind = 0.45
+								e.windKind = "shoot"
+							end
+						else
+							if d > e.r + WR.playerR + 1.2 then e.pos = e.pos + e.face * spd * dt end
+							if e.type == "hound" and d > 13 and d < 28 and e.special <= 0 then
+								e.wind = 0.3
+								e.windKind = "leap"
+								e.special = rng:NextNumber(2.5, 4)
+							elseif e.type == "brute" and d > 14 and d < 38 and e.special <= 0 then
+								e.wind = 0.7
+								e.windKind = "charge"
+								e.special = rng:NextNumber(4, 6)
+							elseif d < e.r + WR.playerR + 2.4 and e.atkCd <= 0 then
+								e.wind = (e.type == "hound") and 0.25 or ((e.type == "brute") and 0.55 or 0.35)
+								e.windKind = "melee"
+							end
+						end
+						if e.wind > 0 then
+							setBodyColor(e)
+							if e.windKind == "charge" or e.windKind == "leap" then
+								fxAll("teleLine", { pos = e.pos, dir = e.face, len = (e.windKind == "leap") and 19 or 36, w = e.r * 2, color = T.danger, dur = e.wind, enemy = true })
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+
+	-- separation and boundaries
+	local n = #enemies
+	for i = 1, n do
+		local a = enemies[i]
+		if not a.dead then
+			for j = i + 1, n do
+				local b = enemies[j]
+				if not b.dead then
+					local dx, dz = b.pos.X - a.pos.X, b.pos.Z - a.pos.Z
+					local d = math.sqrt(dx * dx + dz * dz)
+					local m = a.r + b.r
+					if d > 0.01 and d < m then
+						local p = (m - d) / 2
+						local wa = a.boss and 0 or 1
+						local wb = b.boss and 0 or 1
+						a.pos = a.pos - Vector3.new(dx / d * p * wa, 0, dz / d * p * wa)
+						b.pos = b.pos + Vector3.new(dx / d * p * wb, 0, dz / d * p * wb)
+					end
+				end
+			end
+			resolveRocks(a)
+			local dc = a.pos.Magnitude
+			if dc > WR.R - a.r then a.pos = a.pos.Unit * (WR.R - a.r) end
+			if dc < WR.villageR + a.r and dc > 0.01 then a.pos = a.pos.Unit * (WR.villageR + a.r) end
+			if a.boss or a.minion then
+				local g = W.gates[a.gate]
+				local rel = flat(a.pos - g.pos)
+				if rel.Magnitude > WR.arenaR - a.r then a.pos = g.pos + rel.Unit * (WR.arenaR - a.r) end
+			else
+				for gi, g in ipairs(W.gates) do
+					local rel = flat(a.pos - g.pos)
+					if rel.Magnitude < WR.arenaR + a.r and rel.Magnitude > 0.01 then a.pos = g.pos + rel.Unit * (WR.arenaR + a.r) end
+				end
+			end
+		end
+	end
+
+	local keep = {}
+	for _, e in ipairs(enemies) do
+		if not e.dead and e.model and e.model.Parent then
+			local y = e.y
+			if e.type == "wisp" and not e.boss then y = e.y + math.sin(clock * 3 + e.phase) * 0.4 end
+			local p = Vector3.new(e.pos.X, y, e.pos.Z)
+			e.model:PivotTo(CFrame.lookAt(p, p + e.face))
+			if e.flashUntil and clock > e.flashUntil then
+				e.flashUntil = nil
+				setBodyColor(e)
+			end
+			local s = statusText(e)
+			if e.stLabel.Text ~= s then
+				e.stLabel.Text = s
+				setBodyColor(e)
+			end
+			keep[#keep + 1] = e
+		elseif e.model then
+			e.model:Destroy()
+		end
+	end
+	enemies = keep
+end
+
+-- ---------- per-player tick ----------
+local function updatePlayer(plr, dt)
+	local prof, st = profiles[plr], PS[plr]
+	if not prof or not st then return end
+	local c, hrp, hum = charOf(plr)
+	if not c then return end
+	local pos = flat(hrp.Position)
+
+	if st.skillDash then
+		local s = st.skillDash
+		for _, e in ipairs(enemies) do
+			if not e.dead and not s.hit[e] and d2(e.pos, pos) < e.r + s.w / 2 then
+				s.hit[e] = true
+				damageEnemy(e, s.dmg, s.o, plr)
+			end
+		end
+		fxAll("burst", { pos = hrp.Position, color = s.color, n = 2, speed = 4 })
+		if clock > s.untilT then st.skillDash = nil end
+	end
+
+	local moved = st.lastPos and d2(pos, st.lastPos) or 0
+	st.lastPos = pos
+	if moved > 0.05 then
+		st.idle = 0
+		if clock > st.dashUntil and not st.skillDash and moved < 5 then
+			st.runAcc = st.runAcc + moved
+			if st.runAcc > 60 then
+				st.runAcc = st.runAcc - 60
+				train(plr, "agi", 1)
+			end
+		end
+	else
+		st.idle = st.idle + dt
+	end
+
+	local MM = C.maxMal(prof)
+	local idleBoost = (prof.sin == "sloth" and st.idle > 1) and 3 or 1
+	local altar = d2(pos, W.altarPos) < 13
+	if st.charging and clock >= st.stunUntil then
+		st.mal = st.mal + 42 * (altar and 1.6 or 1) * dt
+		train(plr, "mal", dt * (altar and 3 or 1.4))
+	else
+		st.mal = st.mal + 3 * idleBoost * dt
+	end
+	if st.awaken then
+		st.mal = st.mal - 5 * dt
+		if clock > st.awakenUntil or st.mal <= 0 then
+			st.awaken = false
+			st.awakenCdUntil = clock + 45
+			toast(plr, "Your awakening fades", C.SINS[prof.sin].color)
+			fxAll("aura", { char = c, on = false })
+		end
+	end
+	st.mal = clamp(st.mal, 0, MM)
+
+	if inVillage(pos) then
+		hum.Health = math.min(hum.MaxHealth, hum.Health + hum.MaxHealth * 0.06 * dt)
+	elseif clock - st.lastHurt > 5 then
+		hum.Health = math.min(hum.MaxHealth, hum.Health + hum.MaxHealth * 0.012 * idleBoost * dt)
+	end
+	if st.shield > 0 and clock > st.shieldUntil then st.shield = 0 end
+
+	local ws = C.moveSpeed(prof) * (st.awaken and 1.25 or 1)
+	if st.charging or clock < st.stunUntil then
+		ws = 0
+	elseif st.blocking then
+		ws = ws * 0.4
+	end
+	if math.abs(hum.WalkSpeed - ws) > 0.01 then hum.WalkSpeed = ws end
+
+	-- world edge
+	if pos.Magnitude > WR.R - 2 then moveCharTo(c, hrp, pos.Unit * (WR.R - 3)) end
+
+	-- arenas
+	if st.gate then
+		if not activeBoss[st.gate] then
+			st.gate = nil
+			notify(plr, "boss", { show = false })
+		else
+			local g = W.gates[st.gate]
+			local rel = flat(pos - g.pos)
+			if rel.Magnitude > WR.arenaR - 1.5 then moveCharTo(c, hrp, g.pos + rel.Unit * (WR.arenaR - 2.5)) end
+		end
+	elseif prof.created then
+		local g = inArena(pos, 0)
+		if not g then st.mustLeave = nil end
+		if g and st.mustLeave == g.i then g = nil end
+		if g then
+			local B = C.BOSSES[g.i]
+			if prof.level < B.req then
+				local rel = flat(pos - g.pos)
+				if rel.Magnitude < 0.01 then rel = Vector3.new(1, 0, 0) end
+				moveCharTo(c, hrp, g.pos + rel.Unit * (WR.arenaR + 2))
+				toast(plr, "The seal of " .. C.SINS[B.sin].name .. " holds. Reach level " .. B.req .. " to enter.", C.SINS[B.sin].color, "seal")
+			elseif activeBoss[g.i] then
+				st.gate = g.i
+				local e = activeBoss[g.i]
+				notify(plr, "boss", { name = B.name, color = C.SINS[B.sin].color, frac = e.hp / e.maxHp, hp = e.hp, show = true })
+			else
+				spawnBoss(g.i)
+			end
+		end
+	end
+end
+
+-- ---------- spins, slots, stats, shop ----------
+local function rollSin(prof)
+	if prof.pity >= C.PITY - 1 then return (rng:NextNumber() < 0.85) and "wrath" or "pride" end
+	return C.weightedPick(C.SIN_ORDER, C.SINS, rng)
+end
+
+local function doSpin(plr, tab)
+	local prof, st = profiles[plr], PS[plr]
+	if not prof or prof.spins <= 0 or clock < st.spinAt then return end
+	st.spinAt = clock + 1.4
+	prof.spins = prof.spins - 1
+	local result
+	if tab == "aff" then
+		result = C.weightedPick(C.AFF_ORDER, C.AFFS, rng)
+		prof.aff = result
+	else
+		tab = "line"
+		result = rollSin(prof)
+		local r = C.SINS[result].rarity
+		if r == "legendary" or r == "mythic" then prof.pity = 0 else prof.pity = prof.pity + 1 end
+		prof.sin = result
+	end
+	st.cd = {}
+	refreshHealth(plr, false)
+	notify(plr, "spin", { tab = tab, result = result })
+	markDirty(plr)
+end
+
+local function slotAction(plr, what, i)
+	local prof = profiles[plr]
+	if not prof or (i ~= 1 and i ~= 2) then return end
+	if what == "store" and prof.slots[i] == "" then
+		prof.slots[i] = prof.sin
+	elseif what == "equip" and prof.slots[i] ~= "" and C.SINS[prof.slots[i]] then
+		local t = prof.slots[i]
+		prof.slots[i] = prof.sin
+		prof.sin = t
+		PS[plr].cd = {}
+		refreshHealth(plr, false)
+	elseif what == "release" then
+		prof.slots[i] = ""
+	end
+	markDirty(plr)
+end
+
+local function allocate(plr, s, n)
+	local prof = profiles[plr]
+	if not prof or not C.STAT_INFO[s] or (n ~= 1 and n ~= 5) or prof.points < n then return end
+	prof.points = prof.points - n
+	prof.stats[s] = prof.stats[s] + n
+	refreshHealth(plr, false)
+	markDirty(plr)
+end
+
+local function spinPrice(prof) return 300 + prof.spinsBought * 100 end
+local function buy(plr, item)
+	local prof, st = profiles[plr], PS[plr]
+	if not prof then return end
+	local price
+	if item == "spin" then price = spinPrice(prof)
+	elseif item == "spin5" then price = math.floor((spinPrice(prof) * 5 + 1000) * 0.85)
+	elseif item == "elixir" then price = 40 + prof.level * 6
+	elseif item == "reroll" then price = 30 + prof.level * 3
+	else return end
+	if prof.souls < price then return toast(plr, "Not enough souls", T.blood) end
+	prof.souls = prof.souls - price
+	if item == "spin" then
+		prof.spins = prof.spins + 1
+		prof.spinsBought = prof.spinsBought + 1
+		toast(plr, "+1 spin", T.ember)
+	elseif item == "spin5" then
+		prof.spins = prof.spins + 5
+		prof.spinsBought = prof.spinsBought + 5
+		toast(plr, "+5 spins", T.ember)
+	elseif item == "elixir" then
+		refreshHealth(plr, true)
+		st.mal = C.maxMal(prof)
+		toast(plr, "Restored", C.RARITY.uncommon.color)
+	elseif item == "reroll" then
+		prof.board = genMissions(prof)
+		toast(plr, "The board has new postings", T.ember)
+	end
+	markDirty(plr)
+end
+
+-- ---------- remote handler ----------
+Action.OnServerEvent:Connect(function(plr, act, a, b)
+	local prof, st = profiles[plr], PS[plr]
+	if not prof or not st or type(act) ~= "string" then return end
+	if act == "ready" then
+		StateR:FireClient(plr, prof)
+		if not prof.created then notify(plr, "open", { what = "create" }) end
+		if prof.noSave then toast(plr, "Saving is off: turn on Studio Access to API Services, or the DataStore failed to load.", T.ember) end
+	elseif act == "enter" then
+		if not prof.created then
+			prof.created = true
+			banner(plr, prof.name, C.SINS[prof.sin].name .. " bloodline · " .. C.AFFS[prof.aff].name, C.SINS[prof.sin].color)
+			task.delay(1, function() toast(plr, "Hit the training dummies, take a mission from the board, then head out past the braziers.", T.ember) end)
+			markDirty(plr)
+		end
+	elseif act == "melee" then doMelee(plr, a)
+	elseif act == "skill" then
+		if type(a) == "string" then trySkill(plr, a, b) end
+	elseif act == "dash" then doDash(plr)
+	elseif act == "charge" then st.charging = (a == true)
+	elseif act == "block" then st.blocking = (a == true)
+	elseif act == "awaken" then toggleAwaken(plr)
+	elseif act == "spin" then doSpin(plr, a)
+	elseif act == "slot" then
+		if type(a) == "string" and type(b) == "number" then slotAction(plr, a, b) end
+	elseif act == "stat" then allocate(plr, a, b)
+	elseif act == "accept" then
+		if prof.mission then return end
+		for idx, m in ipairs(prof.board) do
+			if m.id == a then
+				prof.mission = m
+				m.prog = 0
+				table.remove(prof.board, idx)
+				toast(plr, "Accepted: " .. m.text, C.RANK_COLORS[m.rank])
+				markDirty(plr)
+				break
+			end
+		end
+	elseif act == "abandon" then
+		prof.mission = nil
+		for _, e in ipairs(enemies) do
+			if e.elite and e.owner == plr then removeEnemy(e) end
+		end
+		markDirty(plr)
+	elseif act == "buy" then buy(plr, a)
+	end
+end)
+
+-- ---------- village prompts ----------
+W.objects.shrine.prompt.Triggered:Connect(function(plr)
+	if profiles[plr] then notify(plr, "open", { what = "spin" }) end
+end)
+W.objects.board.prompt.Triggered:Connect(function(plr)
+	local prof = profiles[plr]
+	if not prof then return end
+	if not prof.board or #prof.board == 0 then
+		prof.board = genMissions(prof)
+		StateR:FireClient(plr, prof)
+	end
+	notify(plr, "open", { what = "board" })
+end)
+W.objects.ferry.prompt.Triggered:Connect(function(plr)
+	if profiles[plr] then notify(plr, "open", { what = "shop" }) end
+end)
+W.objects.altar.prompt.Triggered:Connect(function(plr)
+	toast(plr, "Hold C beside the altar. Malice training runs at double speed here.", T.mal)
+end)
+
+-- ---------- players ----------
+local function migrate(data, plr)
+	local base = C.newProfile(plr.DisplayName)
+	for k, v in pairs(data) do base[k] = v end
+	local fresh = C.newProfile(plr.DisplayName)
+	for _, s in ipairs(C.STAT_ORDER) do
+		base.stats[s] = base.stats[s] or fresh.stats[s]
+		base.train[s] = base.train[s] or 0
+	end
+	if not C.SINS[base.sin] then base.sin = "sloth" end
+	if not C.AFFS[base.aff] then base.aff = "hellfire" end
+	if type(base.slots) ~= "table" then base.slots = { "", "" } end
+	base.slots[1] = base.slots[1] or ""
+	base.slots[2] = base.slots[2] or ""
+	base.mastery = base.mastery or {}
+	base.bosses = base.bosses or {}
+	base.board = base.board or {}
+	return base
+end
+
+onDied = function(plr)
+	local prof, st = profiles[plr], PS[plr]
+	if not prof then return end
+	prof.deaths = prof.deaths + 1
+	local lost = math.floor(prof.souls * 0.25)
+	prof.souls = prof.souls - lost
+	local had = prof.mission ~= nil
+	prof.mission = nil
+	for _, e in ipairs(enemies) do
+		if e.elite and e.owner == plr then removeEnemy(e) end
+	end
+	if st then
+		st.gate = nil
+		st.awaken = false
+		st.charging = false
+		st.blocking = false
+	end
+	notify(plr, "boss", { show = false })
+	notify(plr, "death", { lost = lost, mission = had })
+	markDirty(plr)
+	task.spawn(Data.save, plr.UserId, prof)
+end
+
+local function onCharacter(plr, c)
+	local hum = c:WaitForChild("Humanoid", 10)
+	if not hum then return end
+	local function killRegen(ch)
+		if ch.Name == "Health" and ch:IsA("Script") then ch:Destroy() end
+	end
+	for _, ch in ipairs(c:GetChildren()) do killRegen(ch) end
+	c.ChildAdded:Connect(killRegen)
+	local prof = profiles[plr]
+	PS[plr] = newRuntime(PS[plr])
+	if prof then
+		hum.MaxHealth = C.maxHp(prof)
+		hum.Health = hum.MaxHealth
+		hum.WalkSpeed = C.moveSpeed(prof)
+		PS[plr].mal = C.maxMal(prof)
+	end
+	hum.Died:Connect(function() onDied(plr) end)
+end
+
+local function onPlayerAdded(plr)
+	local data, ok = Data.load(plr.UserId)
+	if not plr.Parent then return end
+	local prof
+	if ok and type(data) == "table" then
+		prof = migrate(data, plr)
+	else
+		prof = C.newProfile(plr.DisplayName)
+		if not ok then prof.noSave = true end
+	end
+	if not prof.board or #prof.board == 0 then prof.board = genMissions(prof) end
+	profiles[plr] = prof
+	PS[plr] = newRuntime()
+
+	local ls = Instance.new("Folder")
+	ls.Name = "leaderstats"
+	local lv = Instance.new("IntValue")
+	lv.Name = "Level"
+	lv.Value = prof.level
+	lv.Parent = ls
+	local so = Instance.new("IntValue")
+	so.Name = "Souls"
+	so.Value = prof.souls
+	so.Parent = ls
+	ls.Parent = plr
+
+	plr.CharacterAdded:Connect(function(c) onCharacter(plr, c) end)
+	if plr.Character then onCharacter(plr, plr.Character) end
+	markDirty(plr)
+end
+
+Players.PlayerAdded:Connect(onPlayerAdded)
+for _, plr in ipairs(Players:GetPlayers()) do task.spawn(onPlayerAdded, plr) end
+
+Players.PlayerRemoving:Connect(function(plr)
+	local prof = profiles[plr]
+	if prof then Data.save(plr.UserId, prof) end
+	for _, e in ipairs(enemies) do
+		if e.elite and e.owner == plr then removeEnemy(e) end
+	end
+	profiles[plr] = nil
+	PS[plr] = nil
+	dirty[plr] = nil
+end)
+
+game:BindToClose(function()
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if profiles[plr] then Data.save(plr.UserId, profiles[plr]) end
+	end
+end)
+
+-- ---------- main loop ----------
+local spawnT, sendT, attrT, saveT = 0, 0, 0, 0
+RunService.Heartbeat:Connect(function(dt)
+	dt = math.min(dt, 0.1)
+	clock = clock + dt
+	for _, plr in ipairs(Players:GetPlayers()) do updatePlayer(plr, dt) end
+	updateEnemies(dt)
+	updateProjectiles(dt)
+	updateFields(dt)
+
+	spawnT = spawnT - dt
+	if spawnT <= 0 then
+		spawnT = 0.5
+		spawner()
+	end
+
+	attrT = attrT - dt
+	if attrT <= 0 then
+		attrT = 0.1
+		for _, plr in ipairs(Players:GetPlayers()) do
+			local prof, st = profiles[plr], PS[plr]
+			if prof and st then
+				plr:SetAttribute("Malice", math.floor(st.mal))
+				plr:SetAttribute("MaxMalice", C.maxMal(prof))
+				plr:SetAttribute("Awakened", st.awaken)
+				plr:SetAttribute("AwakenLeft", st.awaken and math.max(0, st.awakenUntil - clock) or 0)
+				plr:SetAttribute("AwakenCd", math.max(0, st.awakenCdUntil - clock))
+				plr:SetAttribute("Shield", math.floor(st.shield))
+				plr:SetAttribute("Charging", st.charging)
+				plr:SetAttribute("Stunned", clock < st.stunUntil)
+			end
+		end
+		for i, e in pairs(activeBoss) do
+			bossNotify(i, { name = e.name, color = C.SINS[C.BOSSES[i].sin].color, frac = math.max(0, e.hp / e.maxHp), hp = math.max(0, math.ceil(e.hp)), show = true })
+		end
+	end
+
+	sendT = sendT - dt
+	if sendT <= 0 then
+		sendT = 0.25
+		for plr in pairs(dirty) do
+			local prof = profiles[plr]
+			if prof and plr.Parent then
+				StateR:FireClient(plr, prof)
+				local ls = plr:FindFirstChild("leaderstats")
+				if ls then
+					ls.Level.Value = prof.level
+					ls.Souls.Value = prof.souls
+				end
+			end
+		end
+		dirty = {}
+	end
+
+	saveT = saveT + dt
+	if saveT > 60 then
+		saveT = 0
+		for _, plr in ipairs(Players:GetPlayers()) do
+			if profiles[plr] then task.spawn(Data.save, plr.UserId, profiles[plr]) end
+		end
+	end
+end)
+]]></ProtectedString></Properties><Item class="ModuleScript" referent="RBX00000005"><Properties><string name="Name">Data</string><ProtectedString name="Source"><![CDATA[-- Saves and loads player profiles with DataStoreService.
+-- In Studio this only works after Game Settings > Security > "Enable Studio Access to API Services".
+-- When a load fails, the profile is flagged so it is never saved over real data.
+
+local DSS = game:GetService("DataStoreService")
+
+local Data = {}
+local okStore, store = pcall(function()
+	return DSS:GetDataStore("SinbornSave_v1")
+end)
+
+local function key(userId)
+	return "u_" .. tostring(userId)
+end
+
+-- Returns (data or nil, loadedOk)
+function Data.load(userId)
+	if not okStore or not store then return nil, false end
+	for attempt = 1, 3 do
+		local ok, res = pcall(function()
+			return store:GetAsync(key(userId))
+		end)
+		if ok then return res, true end
+		warn("[Sinborn] load failed (attempt " .. attempt .. "): " .. tostring(res))
+		task.wait(1)
+	end
+	return nil, false
+end
+
+function Data.save(userId, prof)
+	if not okStore or not store or not prof or prof.noSave then return false end
+	local copy = {}
+	for k, v in pairs(prof) do
+		if k ~= "noSave" then copy[k] = v end
+	end
+	local ok, err = pcall(function()
+		store:SetAsync(key(userId), copy)
+	end)
+	if not ok then warn("[Sinborn] save failed: " .. tostring(err)) end
+	return ok
+end
+
+return Data
+]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX00000006"><Properties><string name="Name">World</string><ProtectedString name="Source"><![CDATA[-- Builds the Pit: ground, Limbo village, seven sealed arenas, rocks, trees and lava pools.
+-- Everything is generated from code so the place needs no hand-built map.
+
+local Lighting = game:GetService("Lighting")
+local RS = game:GetService("ReplicatedStorage")
+local C = require(RS:WaitForChild("Sinborn"):WaitForChild("Config"))
+
+local World = {}
+local T = C.THEME
+local rgb = C.rgb
+
+local function part(props)
+	local p = Instance.new("Part")
+	p.Anchored = true
+	p.TopSurface = Enum.SurfaceType.Smooth
+	p.BottomSurface = Enum.SurfaceType.Smooth
+	-- Shape and Size first, so the CFrame lands where it was asked to.
+	if props.Shape then p.Shape = props.Shape end
+	if props.Size then p.Size = props.Size end
+	-- CanQuery can only turn off once CanCollide is off.
+	if props.CanCollide ~= nil then p.CanCollide = props.CanCollide end
+	for k, v in pairs(props) do
+		if k ~= "Parent" and k ~= "Shape" and k ~= "Size" and k ~= "CanCollide" then p[k] = v end
+	end
+	p.Parent = props.Parent
+	return p
+end
+World.part = part
+
+-- Flat disc whose top surface sits at pos.Y.
+local function disc(parent, pos, radius, thick, color, material, name)
+	return part({
+		Name = name or "Disc", Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(thick, radius * 2, radius * 2),
+		CFrame = CFrame.new(pos.X, pos.Y - thick / 2, pos.Z) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = color, Material = material or Enum.Material.Slate, Parent = parent,
+	})
+end
+World.disc = disc
+
+local function bar(parent, a, b, thick, color, name)
+	local mid = (a + b) / 2
+	local len = (b - a).Magnitude
+	return part({
+		Name = name or "Bar", Size = Vector3.new(thick, 0.12, len), CFrame = CFrame.lookAt(mid, b),
+		Color = color, Material = Enum.Material.Neon, CanCollide = false, CanQuery = false, CastShadow = false, Parent = parent,
+	})
+end
+
+-- A {7/3} heptagram made of neon bars, grouped in a model.
+local function heptagram(parent, center, radius, color, rot, thick, name)
+	local m = Instance.new("Model")
+	m.Name = name or "Heptagram"
+	local pts = {}
+	for i = 0, 6 do
+		local k = (i * 3) % 7
+		local a = (rot or 0) - math.pi / 2 + k * math.pi * 2 / 7
+		pts[i + 1] = center + Vector3.new(math.cos(a) * radius, 0, math.sin(a) * radius)
+	end
+	for i = 1, 7 do
+		bar(m, pts[i], pts[(i % 7) + 1], thick or 0.4, color)
+	end
+	m.Parent = parent
+	return m
+end
+World.heptagram = heptagram
+
+local function ring(parent, center, radius, segs, color, height, name)
+	local m = Instance.new("Model")
+	m.Name = name or "Ring"
+	for i = 0, segs - 1 do
+		local a1 = i / segs * math.pi * 2
+		local a2 = (i + 0.55) / segs * math.pi * 2
+		local p1 = center + Vector3.new(math.cos(a1) * radius, height or 0.1, math.sin(a1) * radius)
+		local p2 = center + Vector3.new(math.cos(a2) * radius, height or 0.1, math.sin(a2) * radius)
+		bar(m, p1, p2, 0.6, color)
+	end
+	m.Parent = parent
+	return m
+end
+
+local function label(parent, text, color, size, offset, font)
+	local bb = Instance.new("BillboardGui")
+	bb.Name = "Label"
+	bb.Size = UDim2.fromOffset(size and size[1] or 260, size and size[2] or 60)
+	bb.StudsOffset = offset or Vector3.new(0, 6, 0)
+	bb.MaxDistance = 220
+	bb.LightInfluence = 0
+	local t = Instance.new("TextLabel")
+	t.Name = "Text"
+	t.BackgroundTransparency = 1
+	t.Size = UDim2.fromScale(1, 1)
+	t.Text = text
+	t.TextColor3 = color
+	t.TextScaled = true
+	t.Font = font or Enum.Font.GothamBold
+	t.TextStrokeTransparency = 0.3
+	t.Parent = bb
+	bb.Parent = parent
+	return bb
+end
+World.label = label
+
+local function prompt(parent, action, object, key)
+	local p = Instance.new("ProximityPrompt")
+	p.ActionText = action
+	p.ObjectText = object
+	p.HoldDuration = 0
+	p.MaxActivationDistance = 12
+	p.RequiresLineOfSight = false
+	p.KeyboardKeyCode = key or Enum.KeyCode.E
+	p.Parent = parent
+	return p
+end
+
+local function setupLighting()
+	Lighting.ClockTime = 0
+	Lighting.Brightness = 1.5
+	Lighting.Ambient = rgb(70, 40, 45)
+	Lighting.OutdoorAmbient = rgb(90, 45, 50)
+	Lighting.EnvironmentDiffuseScale = 0.2
+	Lighting.EnvironmentSpecularScale = 0.2
+	Lighting.GlobalShadows = true
+	for _, c in ipairs(Lighting:GetChildren()) do
+		if c:IsA("Sky") or c:IsA("Atmosphere") or c:IsA("PostEffect") then c:Destroy() end
+	end
+	local atm = Instance.new("Atmosphere")
+	atm.Density = 0.38
+	atm.Offset = 0.1
+	atm.Color = rgb(120, 40, 40)
+	atm.Decay = rgb(40, 10, 14)
+	atm.Glare = 0
+	atm.Haze = 2
+	atm.Parent = Lighting
+	local bloom = Instance.new("BloomEffect")
+	bloom.Intensity = 0.6
+	bloom.Size = 30
+	bloom.Threshold = 0.9
+	bloom.Parent = Lighting
+	local cc = Instance.new("ColorCorrectionEffect")
+	cc.TintColor = rgb(255, 225, 220)
+	cc.Contrast = 0.12
+	cc.Saturation = 0.05
+	cc.Parent = Lighting
+end
+
+function World.build()
+	setupLighting()
+	local old = workspace:FindFirstChild("Sinborn")
+	if old then old:Destroy() end
+	local base = workspace:FindFirstChild("Baseplate")
+	if base then base:Destroy() end
+	for _, s in ipairs(workspace:GetChildren()) do
+		if s:IsA("SpawnLocation") then s:Destroy() end
+	end
+
+	local root = Instance.new("Folder")
+	root.Name = "Sinborn"
+	root.Parent = workspace
+	local function folder(n)
+		local f = Instance.new("Folder")
+		f.Name = n
+		f.Parent = root
+		return f
+	end
+	local floor = folder("Floor")
+	local deco = folder("Decor")
+	local village = folder("Village")
+	local gatesF = folder("Gates")
+	local enemiesF = folder("Enemies")
+	local fxF = folder("FX")
+
+	local R = C.WORLD.R
+	local W = { root = root, floor = floor, enemies = enemiesF, fx = fxF, rocks = {}, gates = {}, dummies = {}, objects = {} }
+
+	-- ground and rim
+	disc(floor, Vector3.new(0, 0, 0), R + 4, 6, rgb(32, 22, 25), Enum.Material.Slate, "Ground")
+	local rim = Random.new(99)
+	for i = 0, 89 do
+		local a = i / 90 * math.pi * 2
+		local h = rim:NextNumber(10, 26)
+		local p = part({
+			Name = "Rim", Size = Vector3.new(rim:NextNumber(8, 14), h, rim:NextNumber(6, 10)),
+			CFrame = CFrame.new(math.cos(a) * (R + 2), h / 2 - 1, math.sin(a) * (R + 2)) * CFrame.Angles(rim:NextNumber(-0.3, 0.3), -a, rim:NextNumber(-0.3, 0.3)),
+			Color = rgb(28, 16, 18), Material = Enum.Material.Basalt, Parent = deco,
+		})
+		p.CanCollide = true
+	end
+
+	-- village
+	local VR = C.WORLD.villageR
+	disc(floor, Vector3.new(0, 0.2, 0), VR, 0.4, rgb(48, 36, 38), Enum.Material.Cobblestone, "VillageFloor")
+	disc(floor, Vector3.new(0, 0.25, 0), 14, 0.1, rgb(38, 26, 28), Enum.Material.Slate, "VillageCore")
+	heptagram(village, Vector3.new(0, 0.32, 0), 12, rgb(110, 22, 30), 0, 0.5, "FloorSigil")
+	ring(village, Vector3.new(0, 0.22, 0), VR, 48, rgb(90, 22, 28), 0.25, "VillageEdge")
+
+	local spawn = Instance.new("SpawnLocation")
+	spawn.Name = "LimboSpawn"
+	spawn.Anchored = true
+	spawn.Neutral = true
+	spawn.Duration = 0
+	spawn.Size = Vector3.new(8, 0.4, 8)
+	spawn.CFrame = CFrame.new(0, 0.45, 8)
+	spawn.Color = rgb(60, 44, 46)
+	spawn.Material = Enum.Material.Slate
+	spawn.TopSurface = Enum.SurfaceType.Smooth
+	spawn.Parent = village
+	for _, d in ipairs(spawn:GetChildren()) do
+		if d:IsA("Decal") then d:Destroy() end
+	end
+
+	-- braziers, one per sin
+	for i = 1, 7 do
+		local a = -math.pi / 2 + (i - 1) * math.pi * 2 / 7
+		local pos = Vector3.new(math.cos(a) * (VR - 4), 0, math.sin(a) * (VR - 4))
+		local col = C.SINS[C.SIN_ORDER[i]].color
+		part({ Name = "BrazierStand", Shape = Enum.PartType.Cylinder, Size = Vector3.new(4, 2.2, 2.2), CFrame = CFrame.new(pos + Vector3.new(0, 2, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color = rgb(30, 20, 22), Material = Enum.Material.Metal, Parent = village })
+		local bowl = part({ Name = "Brazier", Size = Vector3.new(3, 0.6, 3), CFrame = CFrame.new(pos + Vector3.new(0, 4.2, 0)), Color = col, Material = Enum.Material.Neon, CanCollide = false, Parent = village })
+		local fire = Instance.new("Fire")
+		fire.Color = col
+		fire.SecondaryColor = rgb(255, 230, 200)
+		fire.Size = 5
+		fire.Heat = 9
+		fire.Parent = bowl
+		local light = Instance.new("PointLight")
+		light.Color = col
+		light.Range = 18
+		light.Brightness = 2
+		light.Parent = bowl
+	end
+
+	-- shrine
+	local shrinePos = Vector3.new(0, 0, -26)
+	local shrine = part({ Name = "Shrine", Shape = Enum.PartType.Cylinder, Size = Vector3.new(1.2, 10, 10), CFrame = CFrame.new(shrinePos + Vector3.new(0, 0.6, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color = rgb(18, 11, 12), Material = Enum.Material.Basalt, Parent = village })
+	local sig = Instance.new("Model")
+	sig.Name = "ShrineSigil"
+	heptagram(sig, shrinePos + Vector3.new(0, 4.5, 0), 4, T.ember, 0, 0.35, "Outer")
+	heptagram(sig, shrinePos + Vector3.new(0, 4.5, 0), 2.6, T.blood, 0, 0.3, "Inner")
+	local core = part({ Name = "Core", Shape = Enum.PartType.Ball, Size = Vector3.new(1.2, 1.2, 1.2), CFrame = CFrame.new(shrinePos + Vector3.new(0, 4.5, 0)), Color = T.ember, Material = Enum.Material.Neon, CanCollide = false, Parent = sig })
+	sig.PrimaryPart = core
+	sig.Parent = village
+	local sl = Instance.new("PointLight")
+	sl.Color = T.ember
+	sl.Range = 20
+	sl.Brightness = 3
+	sl.Parent = core
+	label(shrine, "Shrine of the Heptagram", T.ember, { 240, 34 }, Vector3.new(0, 9, 0), Enum.Font.GothamBold)
+	W.objects.shrine = { pos = shrinePos, prompt = prompt(shrine, "Spin", "Shrine of the Heptagram") }
+
+	-- board
+	local boardPos = Vector3.new(-26, 0, 6)
+	part({ Name = "BoardPost", Size = Vector3.new(0.8, 6, 0.8), CFrame = CFrame.new(boardPos + Vector3.new(0, 3, 0)), Color = rgb(61, 42, 30), Material = Enum.Material.Wood, Parent = village })
+	local board = part({ Name = "Board", Size = Vector3.new(7, 4.5, 0.6), CFrame = CFrame.lookAt(boardPos + Vector3.new(0, 5, 0), Vector3.new(0, 5, 0)), Color = rgb(74, 51, 34), Material = Enum.Material.Wood, Parent = village })
+	for i = -1, 1 do
+		part({ Name = "Paper", Size = Vector3.new(1.6, 2.2, 0.1), CFrame = board.CFrame * CFrame.new(i * 2.1, 0.1 + (i % 2) * 0.2, -0.36), Color = rgb(217, 201, 168), Material = Enum.Material.SmoothPlastic, CanCollide = false, Parent = village })
+	end
+	label(board, "Board of Penance", T.bone, { 220, 30 }, Vector3.new(0, 4, 0))
+	W.objects.board = { pos = boardPos, prompt = prompt(board, "Missions", "Board of Penance") }
+
+	-- ferryman
+	local fPos = Vector3.new(26, 0, 6)
+	local robe = part({ Name = "Ferryman", Size = Vector3.new(3, 6, 3), CFrame = CFrame.lookAt(fPos + Vector3.new(0, 3, 0), Vector3.new(0, 3, 0)), Color = rgb(23, 23, 28), Material = Enum.Material.Fabric, Parent = village })
+	part({ Name = "Hood", Shape = Enum.PartType.Ball, Size = Vector3.new(2.4, 2.4, 2.4), CFrame = robe.CFrame * CFrame.new(0, 3.8, 0), Color = rgb(18, 18, 22), Material = Enum.Material.Fabric, Parent = village })
+	for _, sx in ipairs({ -0.4, 0.4 }) do
+		part({ Name = "Eye", Shape = Enum.PartType.Ball, Size = Vector3.new(0.3, 0.3, 0.3), CFrame = robe.CFrame * CFrame.new(sx, 3.9, -1.1), Color = T.soul, Material = Enum.Material.Neon, CanCollide = false, Parent = village })
+	end
+	part({ Name = "Staff", Size = Vector3.new(0.3, 8, 0.3), CFrame = robe.CFrame * CFrame.new(2, 1, -0.5), Color = rgb(90, 74, 58), Material = Enum.Material.Wood, Parent = village })
+	local lantern = part({ Name = "Lantern", Shape = Enum.PartType.Ball, Size = Vector3.new(0.9, 0.9, 0.9), CFrame = robe.CFrame * CFrame.new(2, 5.4, -0.5), Color = T.soul, Material = Enum.Material.Neon, CanCollide = false, Parent = village })
+	local ll = Instance.new("PointLight")
+	ll.Color = T.soul
+	ll.Range = 14
+	ll.Brightness = 2
+	ll.Parent = lantern
+	label(robe, "The Ferryman", T.soul, { 200, 30 }, Vector3.new(0, 6.5, 0))
+	W.objects.ferry = { pos = fPos, prompt = prompt(robe, "Trade", "The Ferryman") }
+
+	-- altar
+	local aPos = Vector3.new(0, 0, 26)
+	local altar = part({ Name = "Altar", Shape = Enum.PartType.Cylinder, Size = Vector3.new(2.5, 7, 7), CFrame = CFrame.new(aPos + Vector3.new(0, 1.25, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color = rgb(44, 33, 36), Material = Enum.Material.Basalt, Parent = village })
+	local flame = part({ Name = "AltarFlame", Shape = Enum.PartType.Ball, Size = Vector3.new(1.5, 1.5, 1.5), CFrame = CFrame.new(aPos + Vector3.new(0, 3.3, 0)), Color = T.mal, Material = Enum.Material.Neon, CanCollide = false, Parent = village })
+	local af = Instance.new("Fire")
+	af.Color = T.mal
+	af.SecondaryColor = rgb(200, 170, 255)
+	af.Size = 4
+	af.Parent = flame
+	local al = Instance.new("PointLight")
+	al.Color = T.mal
+	al.Range = 16
+	al.Brightness = 2
+	al.Parent = flame
+	local zone = disc(village, aPos + Vector3.new(0, 0.42, 0), 13, 0.05, T.mal, Enum.Material.Neon, "AltarZone")
+	zone.Transparency = 0.82
+	zone.CanCollide = false
+	zone.CanQuery = false
+	label(altar, "Altar of Malice", T.mal, { 200, 30 }, Vector3.new(0, 5, 0))
+	W.objects.altar = { pos = aPos, prompt = prompt(altar, "Read", "Altar of Malice") }
+	W.altarPos = aPos
+
+	-- training dummies
+	local dummyPos = { Vector3.new(-38, 0, -17), Vector3.new(-43, 0, -7), Vector3.new(-32, 0, -7) }
+	for _, p in ipairs(dummyPos) do
+		part({ Name = "DummyPost", Size = Vector3.new(0.6, 5, 0.6), CFrame = CFrame.new(p + Vector3.new(0, 2.5, 0)), Color = rgb(74, 51, 34), Material = Enum.Material.Wood, Parent = village })
+		local body = part({ Name = "Dummy", Shape = Enum.PartType.Ball, Size = Vector3.new(2.6, 2.6, 2.6), CFrame = CFrame.new(p + Vector3.new(0, 4.3, 0)), Color = rgb(179, 154, 100), Material = Enum.Material.Fabric, Parent = village })
+		part({ Name = "DummyArms", Size = Vector3.new(4, 0.5, 0.5), CFrame = CFrame.new(p + Vector3.new(0, 4, 0)), Color = rgb(138, 116, 68), Material = Enum.Material.Wood, CanCollide = false, Parent = village })
+		W.dummies[#W.dummies + 1] = { pos = p, part = body }
+	end
+	label(village:FindFirstChild("Dummy"), "Training dummies", T.ash, { 200, 26 }, Vector3.new(-2, 4, 0))
+
+	-- arenas
+	for i, g in ipairs(C.GATES) do
+		local B = C.BOSSES[i]
+		local col = C.SINS[B.sin].color
+		local pos = Vector3.new(g.x, 0, g.z)
+		local gm = Instance.new("Model")
+		gm.Name = "Gate" .. i
+		disc(floor, pos + Vector3.new(0, 0.15, 0), C.WORLD.arenaR, 0.3, rgb(22, 14, 16), Enum.Material.Basalt, "Arena" .. i)
+		heptagram(gm, pos + Vector3.new(0, 0.32, 0), C.WORLD.arenaR * 0.85, col, i, 0.5, "Sigil")
+		ring(gm, pos, C.WORLD.arenaR, 40, col, 0.35, "Seal")
+		local pillar = part({ Name = "Pillar", Size = Vector3.new(3, 14, 3), CFrame = CFrame.new(pos + Vector3.new(0, 7, 0) + (pos.Unit * -(C.WORLD.arenaR + 4))), Color = rgb(28, 18, 20), Material = Enum.Material.Basalt, Parent = gm })
+		local cap = part({ Name = "Cap", Shape = Enum.PartType.Ball, Size = Vector3.new(2.4, 2.4, 2.4), CFrame = pillar.CFrame * CFrame.new(0, 8, 0), Color = col, Material = Enum.Material.Neon, CanCollide = false, Parent = gm })
+		local pl = Instance.new("PointLight")
+		pl.Color = col
+		pl.Range = 24
+		pl.Brightness = 2
+		pl.Parent = cap
+		local lb = label(pillar, C.SINS[B.sin].name .. "\n" .. B.name .. "  ·  Lv " .. B.req .. "+", col, { 300, 64 }, Vector3.new(0, 11, 0), Enum.Font.GothamBold)
+		lb.Name = "GateLabel"
+		gm:SetAttribute("Gate", i)
+		gm.Parent = gatesF
+		W.gates[i] = { pos = pos, i = i, model = gm }
+	end
+
+	-- rocks, trees, pools (seeded)
+	local rnd = Random.new(1337)
+	local function okSpot(x, z, pad)
+		local dc = math.sqrt(x * x + z * z)
+		if dc < VR + 10 + pad or dc > R - 10 then return false end
+		for _, g in ipairs(C.GATES) do
+			local dx, dz = x - g.x, z - g.z
+			if math.sqrt(dx * dx + dz * dz) < C.WORLD.arenaR + 8 + pad then return false end
+		end
+		return true
+	end
+	local tries = 0
+	while #W.rocks < 150 and tries < 900 do
+		tries = tries + 1
+		local a = rnd:NextNumber() * math.pi * 2
+		local d = math.sqrt(rnd:NextNumber()) * R
+		local x, z = math.cos(a) * d, math.sin(a) * d
+		local r = rnd:NextNumber(2.2, 6.5)
+		local ok = okSpot(x, z, r)
+		if ok then
+			for _, k in ipairs(W.rocks) do
+				local dx, dz = k.x - x, k.z - z
+				if math.sqrt(dx * dx + dz * dz) < k.r + r + 9 then ok = false break end
+			end
+		end
+		if ok then
+			local h = r * rnd:NextNumber(0.9, 1.7)
+			part({ Name = "Rock", Size = Vector3.new(r * 2, h, r * 2 * rnd:NextNumber(0.8, 1.1)),
+				CFrame = CFrame.new(x, h / 2 - 0.3, z) * CFrame.Angles(rnd:NextNumber(-0.15, 0.15), rnd:NextNumber() * 6.28, rnd:NextNumber(-0.15, 0.15)),
+				Color = rgb(44, 33, 36), Material = Enum.Material.Basalt, Parent = deco })
+			W.rocks[#W.rocks + 1] = { x = x, z = z, r = r * 1.05 }
+		end
+	end
+	local trees = 0
+	tries = 0
+	while trees < 110 and tries < 400 do
+		tries = tries + 1
+		local a = rnd:NextNumber() * math.pi * 2
+		local d = math.sqrt(rnd:NextNumber()) * R
+		local x, z = math.cos(a) * d, math.sin(a) * d
+		if okSpot(x, z, 2) then
+			trees = trees + 1
+			local s = rnd:NextNumber(0.8, 1.5)
+			local tm = Instance.new("Model")
+			tm.Name = "DeadTree"
+			part({ Name = "Trunk", Size = Vector3.new(0.8 * s, 7 * s, 0.8 * s), CFrame = CFrame.new(x, 3.5 * s, z) * CFrame.Angles(rnd:NextNumber(-0.1, 0.1), 0, rnd:NextNumber(-0.1, 0.1)), Color = rgb(43, 29, 28), Material = Enum.Material.Wood, Parent = tm })
+			for b = 1, 3 do
+				local ba = rnd:NextNumber() * 6.28
+				part({ Name = "Branch", Size = Vector3.new(0.4 * s, 0.4 * s, 4 * s), CanCollide = false,
+					CFrame = CFrame.new(x, (4.5 + b) * s, z) * CFrame.Angles(0, ba, 0) * CFrame.Angles(0.5, 0, 0) * CFrame.new(0, 0, -1.6 * s),
+					Color = rgb(43, 29, 28), Material = Enum.Material.Wood, Parent = tm })
+			end
+			tm.Parent = deco
+		end
+	end
+	local pools = 0
+	tries = 0
+	while pools < 30 and tries < 200 do
+		tries = tries + 1
+		local a = rnd:NextNumber() * math.pi * 2
+		local d = math.sqrt(rnd:NextNumber()) * R
+		local x, z = math.cos(a) * d, math.sin(a) * d
+		local r = rnd:NextNumber(4, 9)
+		if okSpot(x, z, r) then
+			pools = pools + 1
+			local p = disc(deco, Vector3.new(x, 0.08, z), r, 0.1, rgb(255, 90, 30), Enum.Material.Neon, "EmberPool")
+			p.Transparency = 0.25
+			p.CanCollide = false
+			if pools % 2 == 0 then
+				local l = Instance.new("PointLight")
+				l.Color = rgb(255, 100, 40)
+				l.Range = r * 2.2
+				l.Brightness = 1.5
+				l.Parent = p
+			end
+		end
+	end
+
+	return W
+end
+
+return World
+]]></ProtectedString></Properties></Item></Item></Item><Item class="StarterPlayer" referent="RBX0000000E"><Properties><string name="Name">StarterPlayer</string></Properties><Item class="StarterPlayerScripts" referent="RBX0000000C"><Properties><string name="Name">StarterPlayerScripts</string></Properties><Item class="LocalScript" referent="RBX0000000B"><Properties><string name="Name">SinbornClient</string><ProtectedString name="Source"><![CDATA[-- Sinborn client: input, aiming, local movement (dashes and pulls), HUD and effects.
+
+local Players = game:GetService("Players")
+local RS = game:GetService("ReplicatedStorage")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
+
+local plr = Players.LocalPlayer
+local Root = RS:WaitForChild("Sinborn")
+local C = require(Root:WaitForChild("Config"))
+local Remotes = Root:WaitForChild("Remotes")
+local Action = Remotes:WaitForChild("Action")
+local StateR = Remotes:WaitForChild("State")
+local FXR = Remotes:WaitForChild("FX")
+local Notify = Remotes:WaitForChild("Notify")
+local UI = require(script:WaitForChild("UI"))
+local FX = require(script:WaitForChild("FX"))
+
+task.spawn(function()
+	for _ = 1, 20 do
+		local ok = pcall(function()
+			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
+			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Health, false)
+		end)
+		if ok then break end
+		task.wait(0.5)
+	end
+end)
+
+local function send(...)
+	Action:FireServer(...)
+end
+local ui = UI.new(C, send)
+
+-- ---------- aiming ----------
+local rayParams = RaycastParams.new()
+rayParams.FilterType = Enum.RaycastFilterType.Include
+local function floorFolder()
+	local s = workspace:FindFirstChild("Sinborn")
+	return s and s:FindFirstChild("Floor")
+end
+local function rootPart()
+	local c = plr.Character
+	return c and c:FindFirstChild("HumanoidRootPart")
+end
+local function aimPoint()
+	local hrp = rootPart()
+	if not hrp then return nil end
+	local fallback = hrp.Position + hrp.CFrame.LookVector * 30
+	if not UIS.MouseEnabled then return fallback end
+	local f = floorFolder()
+	if not f then return fallback end
+	rayParams.FilterDescendantsInstances = { f }
+	local m = UIS:GetMouseLocation()
+	local ray = workspace.CurrentCamera:ViewportPointToRay(m.X, m.Y)
+	local hit = workspace:Raycast(ray.Origin, ray.Direction * 1000, rayParams)
+	if hit then return hit.Position end
+	return fallback
+end
+
+-- ---------- local movement ----------
+local function applyVelocity(getDir, speed, dur)
+	local hrp = rootPart()
+	if not hrp then return end
+	local att = Instance.new("Attachment")
+	att.Name = "SinbornMove"
+	att.Parent = hrp
+	local lv = Instance.new("LinearVelocity")
+	lv.Attachment0 = att
+	lv.MaxForce = 100000
+	lv.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
+	lv.RelativeTo = Enum.ActuatorRelativeTo.World
+	local d = getDir()
+	lv.VectorVelocity = Vector3.new(d.X, 0, d.Z) * speed
+	lv.Parent = hrp
+	local t0 = os.clock()
+	local conn
+	conn = RunService.Heartbeat:Connect(function()
+		if os.clock() - t0 > dur or not lv.Parent then
+			conn:Disconnect()
+			lv:Destroy()
+			att:Destroy()
+			return
+		end
+		local nd = getDir()
+		if nd then lv.VectorVelocity = Vector3.new(nd.X, 0, nd.Z) * speed end
+	end)
+end
+
+local dashReady = 0
+local function dash()
+	if os.clock() < dashReady or plr:GetAttribute("Charging") or plr:GetAttribute("Stunned") then return end
+	local c = plr.Character
+	local hum = c and c:FindFirstChildOfClass("Humanoid")
+	local hrp = rootPart()
+	if not hum or not hrp or hum.Health <= 0 then return end
+	dashReady = os.clock() + 0.75
+	local dir = hum.MoveDirection
+	if dir.Magnitude < 0.1 then
+		local a = aimPoint()
+		dir = a and (a - hrp.Position) or hrp.CFrame.LookVector
+	end
+	dir = Vector3.new(dir.X, 0, dir.Z)
+	if dir.Magnitude < 0.01 then dir = Vector3.new(0, 0, -1) end
+	dir = dir.Unit
+	applyVelocity(function() return dir end, 80, 0.17)
+	send("dash")
+end
+
+local shakeUntil, shakeAmp = 0, 0
+local function shake(a)
+	shakeAmp = math.max(shakeAmp, a)
+	shakeUntil = os.clock() + 0.25
+end
+
+-- ---------- input ----------
+local meleeHeld = false
+local nextMelee = 0
+local skillKeys = {
+	[Enum.KeyCode.One] = "1", [Enum.KeyCode.Two] = "2", [Enum.KeyCode.Three] = "3", [Enum.KeyCode.Four] = "4",
+	[Enum.KeyCode.Z] = "Z", [Enum.KeyCode.X] = "X",
+}
+
+UIS.InputBegan:Connect(function(input, gp)
+	if gp then return end
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		if not ui.openName then meleeHeld = true end
+		return
+	end
+	local kc = input.KeyCode
+	if kc == Enum.KeyCode.K then
+		ui:toggle("ledger")
+		return
+	end
+	if ui.openName then return end
+	if skillKeys[kc] then
+		send("skill", skillKeys[kc], aimPoint())
+	elseif kc == Enum.KeyCode.Q then
+		dash()
+	elseif kc == Enum.KeyCode.C then
+		send("charge", true)
+	elseif kc == Enum.KeyCode.F then
+		send("block", true)
+	elseif kc == Enum.KeyCode.G then
+		send("awaken")
+	elseif kc == Enum.KeyCode.J then
+		meleeHeld = true
+	end
+end)
+
+UIS.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.KeyCode == Enum.KeyCode.J then
+		meleeHeld = false
+	elseif input.KeyCode == Enum.KeyCode.C then
+		send("charge", false)
+	elseif input.KeyCode == Enum.KeyCode.F then
+		send("block", false)
+	end
+end)
+
+ui.onSlot = function(key)
+	if key == "M1" then
+		send("melee", aimPoint())
+	elseif key == "G" then
+		send("awaken")
+	else
+		send("skill", key, aimPoint())
+	end
+end
+ui.onMelee = function(on) meleeHeld = on end
+ui.onDash = dash
+ui.onCharge = function(on) send("charge", on) end
+ui.onBlock = function(on) send("block", on) end
+
+-- ---------- server messages ----------
+local eliteModel, eliteHighlight = nil, nil
+StateR.OnClientEvent:Connect(function(prof)
+	ui:setProfile(prof)
+end)
+
+Notify.OnClientEvent:Connect(function(kind, d)
+	d = d or {}
+	if kind == "toast" then
+		ui:toast(d.text, d.color)
+	elseif kind == "banner" then
+		ui:banner(d.main, d.sub, d.color)
+	elseif kind == "cd" then
+		ui:cooldown(d.id, d.dur)
+	elseif kind == "spin" then
+		ui:spinResult(d.tab, d.result)
+	elseif kind == "open" then
+		if d.what == "create" then
+			ui.spinTab = "line"
+			ui:open("spin", true)
+		else
+			ui:open(d.what)
+		end
+	elseif kind == "forceDash" then
+		applyVelocity(function() return d.dir end, d.speed, d.dur)
+	elseif kind == "pull" then
+		applyVelocity(function()
+			local hrp = rootPart()
+			if not hrp then return nil end
+			local v = d.target - hrp.Position
+			v = Vector3.new(v.X, 0, v.Z)
+			if v.Magnitude < 2 then return Vector3.new(0, 0, 0) end
+			return v.Unit
+		end, d.speed, d.dur)
+	elseif kind == "death" then
+		meleeHeld = false
+		ui.deathInfo = d
+		ui:open("death")
+	elseif kind == "boss" then
+		ui:boss(d)
+	elseif kind == "victory" then
+		ui:open("victory")
+	elseif kind == "elite" then
+		eliteModel = d.model
+		if eliteHighlight then eliteHighlight:Destroy() end
+		if eliteModel then
+			eliteHighlight = Instance.new("Highlight")
+			eliteHighlight.FillTransparency = 1
+			eliteHighlight.OutlineColor = C.THEME.ember
+			eliteHighlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+			eliteHighlight.Parent = eliteModel
+		end
+	elseif kind == "shake" then
+		shake(d.a or 0.3)
+	end
+end)
+
+FXR.OnClientEvent:Connect(function(kind, d)
+	FX.play(kind, d)
+end)
+
+-- ---------- world dressing (local only) ----------
+local sigil, sigilBase
+local function gateLabels()
+	local p = ui.prof
+	local s = workspace:FindFirstChild("Sinborn")
+	local gates = s and s:FindFirstChild("Gates")
+	if not p or not gates then return end
+	for _, gm in ipairs(gates:GetChildren()) do
+		local i = gm:GetAttribute("Gate")
+		local pillar = gm:FindFirstChild("Pillar")
+		local lb = pillar and pillar:FindFirstChild("GateLabel")
+		local t = lb and lb:FindFirstChild("Text")
+		if i and t then
+			local B = C.BOSSES[i]
+			if C.hasBoss(p, i) then
+				t.Text = "Seal broken\n" .. B.name
+				t.TextColor3 = C.THEME.ash
+			else
+				t.Text = C.SINS[B.sin].name .. "\n" .. B.name .. "  ·  Lv " .. B.req .. "+"
+				t.TextColor3 = (p.level >= B.req) and C.SINS[B.sin].color or C.THEME.ash
+			end
+		end
+	end
+end
+
+local chargeAtt
+local function chargeFx(on)
+	local hrp = rootPart()
+	if on and hrp and not chargeAtt then
+		chargeAtt = Instance.new("Attachment")
+		chargeAtt.Position = Vector3.new(0, -2, 0)
+		local pe = Instance.new("ParticleEmitter")
+		pe.Color = ColorSequence.new(C.THEME.mal)
+		pe.LightEmission = 1
+		pe.Rate = 50
+		pe.Speed = NumberRange.new(4, 9)
+		pe.EmissionDirection = Enum.NormalId.Top
+		pe.SpreadAngle = Vector2.new(25, 25)
+		pe.Lifetime = NumberRange.new(0.4, 0.8)
+		pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.4), NumberSequenceKeypoint.new(1, 0) })
+		pe.Parent = chargeAtt
+		chargeAtt.Parent = hrp
+	elseif not on and chargeAtt then
+		chargeAtt:Destroy()
+		chargeAtt = nil
+	end
+end
+
+plr.CharacterAdded:Connect(function()
+	chargeAtt = nil
+	meleeHeld = false
+end)
+
+local slow = 0
+RunService.RenderStepped:Connect(function(dt)
+	ui:update(plr)
+	if meleeHeld and not ui.openName and os.clock() > nextMelee then
+		nextMelee = os.clock() + 0.2
+		send("melee", aimPoint())
+	end
+	chargeFx(plr:GetAttribute("Charging") == true)
+
+	local c = plr.Character
+	local hum = c and c:FindFirstChildOfClass("Humanoid")
+	if hum then
+		if os.clock() < shakeUntil then
+			hum.CameraOffset = Vector3.new((math.random() - 0.5) * shakeAmp, (math.random() - 0.5) * shakeAmp, 0)
+		elseif shakeAmp > 0 then
+			shakeAmp = 0
+			hum.CameraOffset = Vector3.new(0, 0, 0)
+		end
+	end
+
+	if not sigil then
+		local s = workspace:FindFirstChild("Sinborn")
+		local v = s and s:FindFirstChild("Village")
+		sigil = v and v:FindFirstChild("ShrineSigil")
+		if sigil then sigilBase = sigil:GetPivot() end
+	elseif sigil.Parent then
+		sigil:PivotTo(sigilBase * CFrame.Angles(0, os.clock() * 0.6, 0))
+	end
+
+	slow = slow + dt
+	if slow > 0.2 then
+		slow = 0
+		if eliteModel and not eliteModel.Parent then eliteModel = nil end
+		ui:updateMinimap(plr, eliteModel)
+		gateLabels()
+	end
+end)
+
+send("ready")
+]]></ProtectedString></Properties><Item class="ModuleScript" referent="RBX00000009"><Properties><string name="Name">UI</string><ProtectedString name="Source"><![CDATA[-- Sinborn HUD and menus, built entirely in code.
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UIS = game:GetService("UserInputService")
+
+local UI = {}
+UI.__index = UI
+
+local function font(name, fallback)
+	local ok, f = pcall(function() return Enum.Font[name] end)
+	if ok and f then return f end
+	return fallback
+end
+local F_DISPLAY = font("GrenzeGotisch", Enum.Font.Fantasy)
+local F_BODY = Enum.Font.Gotham
+local F_MED = Enum.Font.GothamMedium
+local F_BOLD = Enum.Font.GothamBold
+local F_MONO = font("RobotoMono", Enum.Font.Code)
+
+local function new(class, props, children)
+	local o = Instance.new(class)
+	if props then
+		for k, v in pairs(props) do
+			if k ~= "Parent" then o[k] = v end
+		end
+	end
+	if children then
+		for _, c in ipairs(children) do c.Parent = o end
+	end
+	if props and props.Parent then o.Parent = props.Parent end
+	return o
+end
+local function corner(px) return new("UICorner", { CornerRadius = UDim.new(0, px or 3) }) end
+local function stroke(color, th) return new("UIStroke", { Color = color, Thickness = th or 1, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }) end
+local function pad(px, py)
+	return new("UIPadding", { PaddingLeft = UDim.new(0, px), PaddingRight = UDim.new(0, px), PaddingTop = UDim.new(0, py or px), PaddingBottom = UDim.new(0, py or px) })
+end
+local function list(dir, gap, halign)
+	return new("UIListLayout", { FillDirection = dir or Enum.FillDirection.Vertical, Padding = UDim.new(0, gap or 6), SortOrder = Enum.SortOrder.LayoutOrder, HorizontalAlignment = halign or Enum.HorizontalAlignment.Left })
+end
+local function hex(c) return "#" .. c:ToHex() end
+
+function UI.new(C, send)
+	local self = setmetatable({}, UI)
+	self.C, self.send, self.T = C, send, C.THEME
+	local T = C.THEME
+	self.prof = nil
+	self.cdUntil, self.cdDur = {}, {}
+	self.spinning = false
+	self.spinTab = "line"
+	self.creation = false
+	self.openName = nil
+
+	local plr = Players.LocalPlayer
+	local gui = new("ScreenGui", { Name = "SinbornUI", ResetOnSpawn = false, ZIndexBehavior = Enum.ZIndexBehavior.Sibling, Parent = plr:WaitForChild("PlayerGui") })
+	self.gui = gui
+
+	local function txt(props)
+		local base = { BackgroundTransparency = 1, Font = F_BODY, TextColor3 = T.bone, TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Center }
+		for k, v in pairs(props) do base[k] = v end
+		return new("TextLabel", base)
+	end
+	self.txt = txt
+	local function btn(text, primary, props)
+		local b = new("TextButton", { AutoButtonColor = true, BackgroundColor3 = primary and T.blood or T.stone2, Font = F_BOLD, TextSize = 14, TextColor3 = primary and Color3.new(1, 1, 1) or T.bone, Text = text, Size = UDim2.fromOffset(120, 34) })
+		corner(2).Parent = b
+		stroke(primary and C.rgb(122, 15, 25) or T.seam, 1).Parent = b
+		if props then
+			for k, v in pairs(props) do b[k] = v end
+		end
+		return b
+	end
+	self.btn = btn
+	local function barFrame(parent, color, h, labelText)
+		local bg = new("Frame", { BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 0.35, BorderSizePixel = 0, Size = UDim2.new(1, 0, 0, h), Parent = parent }, { stroke(T.seam), corner(2) })
+		local fill = new("Frame", { BackgroundColor3 = color, BorderSizePixel = 0, Size = UDim2.fromScale(0.5, 1), Parent = bg }, { corner(2) })
+		local l, v
+		if labelText then
+			l = txt({ Text = labelText, Font = F_MONO, TextSize = 11, Size = UDim2.new(0.5, 0, 1, 0), Position = UDim2.fromOffset(6, 0), TextStrokeTransparency = 0.5, ZIndex = 2, Parent = bg })
+			v = txt({ Text = "", Font = F_MONO, TextSize = 11, Size = UDim2.new(0.5, -6, 1, 0), Position = UDim2.fromScale(0.5, 0), TextXAlignment = Enum.TextXAlignment.Right, TextStrokeTransparency = 0.5, ZIndex = 2, Parent = bg })
+		end
+		return bg, fill, v
+	end
+
+	-- ---------- HUD ----------
+	local hud = new("Frame", { Name = "HUD", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), Visible = false, Parent = gui })
+	self.hud = hud
+	local box = new("Frame", { BackgroundTransparency = 1, Position = UDim2.fromOffset(12, 8), Size = UDim2.fromOffset(300, 140), Parent = hud }, { list(nil, 4) })
+	local who = new("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 28), LayoutOrder = 1, Parent = box })
+	self.hName = txt({ Font = F_DISPLAY, TextSize = 28, Size = UDim2.new(0, 10, 1, 0), AutomaticSize = Enum.AutomaticSize.X, Parent = who })
+	self.hRank = txt({ Font = F_BOLD, TextSize = 11, TextColor3 = T.ash, Size = UDim2.new(1, 0, 1, -4), Position = UDim2.fromOffset(0, 4), TextXAlignment = Enum.TextXAlignment.Right, Parent = who })
+	self.hLine = txt({ RichText = true, Font = F_BOLD, TextSize = 12, Size = UDim2.new(1, 0, 0, 16), LayoutOrder = 2, Parent = box })
+	local _, hpFill, hpTxt = barFrame(box, T.hp, 16, "HP")
+	hpFill.Parent.LayoutOrder = 3
+	local _, malFill, malTxt = barFrame(box, T.mal, 16, "MALICE")
+	malFill.Parent.LayoutOrder = 4
+	local _, xpFill = barFrame(box, T.xp, 6)
+	xpFill.Parent.LayoutOrder = 5
+	self.hpFill, self.hpTxt, self.malFill, self.malTxt, self.xpFill = hpFill, hpTxt, malFill, malTxt, xpFill
+	local trainRow = new("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 18), LayoutOrder = 6, Parent = box }, { list(Enum.FillDirection.Horizontal, 6) })
+	self.trainUi = {}
+	for i, s in ipairs(C.STAT_ORDER) do
+		local cell = new("Frame", { BackgroundTransparency = 1, Size = UDim2.new(0.25, -5, 1, 0), LayoutOrder = i, Parent = trainRow })
+		local l = txt({ Font = F_MONO, TextSize = 10, TextColor3 = T.ash, Size = UDim2.new(1, 0, 0, 12), Text = C.STAT_INFO[s].short, Parent = cell })
+		local bg = new("Frame", { BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 0.4, BorderSizePixel = 0, Position = UDim2.fromOffset(0, 14), Size = UDim2.new(1, 0, 0, 3), Parent = cell })
+		local f = new("Frame", { BackgroundColor3 = T.bone, BackgroundTransparency = 0.3, BorderSizePixel = 0, Size = UDim2.fromScale(0, 1), Parent = bg })
+		self.trainUi[s] = { l = l, f = f }
+	end
+
+	local purse = new("Frame", { BackgroundTransparency = 1, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -12, 0, 8), Size = UDim2.fromOffset(200, 28), Parent = hud }, { list(Enum.FillDirection.Horizontal, 8, Enum.HorizontalAlignment.Right) })
+	local function chip(color, order)
+		local f = new("Frame", { BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 0.35, Size = UDim2.fromOffset(10, 26), AutomaticSize = Enum.AutomaticSize.X, LayoutOrder = order, Parent = purse }, { corner(2), stroke(T.seam), pad(8, 0) })
+		return txt({ Font = F_MONO, TextSize = 14, TextColor3 = color, Size = UDim2.new(0, 10, 1, 0), AutomaticSize = Enum.AutomaticSize.X, Parent = f })
+	end
+	self.hSouls = chip(T.soul, 1)
+	self.hSpins = chip(T.ember, 2)
+
+	-- minimap
+	local mini = new("Frame", { BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 0.35, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -12, 0, 42), Size = UDim2.fromOffset(150, 150), ClipsDescendants = true, Parent = hud }, { new("UICorner", { CornerRadius = UDim.new(1, 0) }), stroke(T.seam) })
+	self.mini = mini
+	local function mapPos(x, z)
+		local s = 0.5 / (C.WORLD.R + 10)
+		return UDim2.fromScale(0.5 + x * s, 0.5 + z * s)
+	end
+	self.mapPos = mapPos
+	local vs = C.WORLD.villageR / (C.WORLD.R + 10)
+	new("Frame", { BackgroundColor3 = T.seam, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromScale(vs, vs), Parent = mini }, { new("UICorner", { CornerRadius = UDim.new(1, 0) }) })
+	self.gateDots = {}
+	local gs = C.WORLD.arenaR / (C.WORLD.R + 10)
+	for i, g in ipairs(C.GATES) do
+		local col = C.SINS[C.BOSSES[i].sin].color
+		local d = new("Frame", { BackgroundTransparency = 1, AnchorPoint = Vector2.new(0.5, 0.5), Position = mapPos(g.x, g.z), Size = UDim2.fromScale(gs, gs), Parent = mini }, { new("UICorner", { CornerRadius = UDim.new(1, 0) }), stroke(col, 2) })
+		self.gateDots[i] = d
+	end
+	self.enemyDots = {}
+	for i = 1, 40 do
+		self.enemyDots[i] = new("Frame", { BackgroundColor3 = T.hp, BorderSizePixel = 0, AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.fromOffset(3, 3), Visible = false, Parent = mini })
+	end
+	self.markDot = new("Frame", { BackgroundColor3 = T.ember, BorderSizePixel = 0, AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.fromOffset(8, 8), Visible = false, ZIndex = 3, Parent = mini }, { new("UICorner", { CornerRadius = UDim.new(1, 0) }) })
+	self.meDot = new("Frame", { BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0, AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.fromOffset(7, 7), ZIndex = 4, Parent = mini }, { new("UICorner", { CornerRadius = UDim.new(1, 0) }) })
+
+	-- mission tracker
+	local mission = new("Frame", { BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 0.3, Position = UDim2.fromOffset(12, 154), Size = UDim2.fromOffset(280, 10), AutomaticSize = Enum.AutomaticSize.Y, Visible = false, Parent = hud }, { stroke(T.seam), pad(10, 7), list(nil, 2) })
+	new("Frame", { BackgroundColor3 = T.ember, BorderSizePixel = 0, Position = UDim2.new(0, -10, 0, -7), Size = UDim2.new(0, 3, 1, 14), Parent = mission })
+	self.mission = mission
+	self.mLbl = txt({ Font = F_BOLD, TextSize = 10, TextColor3 = T.ember, Size = UDim2.new(1, 0, 0, 12), LayoutOrder = 1, Parent = mission })
+	self.mTxt = txt({ TextSize = 13, Size = UDim2.new(1, 0, 0, 16), AutomaticSize = Enum.AutomaticSize.Y, TextWrapped = true, LayoutOrder = 2, Parent = mission })
+
+	-- toasts
+	self.toasts = new("Frame", { BackgroundTransparency = 1, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -12, 0, 204), Size = UDim2.fromOffset(330, 300), Parent = hud }, { list(nil, 6, Enum.HorizontalAlignment.Right) })
+	self.toastN = 0
+
+	-- boss bar
+	local bossbar = new("Frame", { BackgroundTransparency = 1, AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 6), Size = UDim2.fromOffset(460, 52), Visible = false, Parent = hud })
+	self.bossbar = bossbar
+	self.bossName = txt({ Font = F_DISPLAY, TextSize = 28, TextXAlignment = Enum.TextXAlignment.Center, Size = UDim2.new(1, 0, 0, 30), TextStrokeTransparency = 0.4, Parent = bossbar })
+	local bbg = new("Frame", { BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 0.3, BorderSizePixel = 0, Position = UDim2.fromOffset(0, 34), Size = UDim2.new(1, 0, 0, 12), Parent = bossbar }, { stroke(T.seam) })
+	self.bossFill = new("Frame", { BackgroundColor3 = T.blood, BorderSizePixel = 0, Size = UDim2.fromScale(1, 1), Parent = bbg })
+	self.bossHp = txt({ Font = F_MONO, TextSize = 10, Size = UDim2.new(1, -6, 1, 0), TextXAlignment = Enum.TextXAlignment.Right, TextStrokeTransparency = 0.4, ZIndex = 2, Parent = bbg })
+
+	-- banner
+	local banner = new("Frame", { BackgroundTransparency = 1, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.3), Size = UDim2.new(1, 0, 0, 110), Parent = hud })
+	self.bannerMain = txt({ Font = F_DISPLAY, TextSize = 64, TextXAlignment = Enum.TextXAlignment.Center, Size = UDim2.new(1, 0, 0, 74), TextTransparency = 1, TextStrokeTransparency = 1, Parent = banner })
+	self.bannerSub = txt({ Font = F_BOLD, TextSize = 13, TextColor3 = T.ash, TextXAlignment = Enum.TextXAlignment.Center, Position = UDim2.fromOffset(0, 78), Size = UDim2.new(1, 0, 0, 20), TextTransparency = 1, TextStrokeTransparency = 1, Parent = banner })
+
+	-- hint
+	self.hint = txt({ Font = F_MED, TextSize = 13, TextXAlignment = Enum.TextXAlignment.Center, AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -88), Size = UDim2.fromOffset(300, 26), BackgroundTransparency = 0.25, BackgroundColor3 = Color3.new(0, 0, 0), Visible = false, Parent = hud })
+	corner(2).Parent = self.hint
+
+	-- skill bar
+	self.skillbar = new("Frame", { BackgroundTransparency = 1, AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -12), Size = UDim2.fromOffset(10, 64), AutomaticSize = Enum.AutomaticSize.X, Parent = hud }, { list(Enum.FillDirection.Horizontal, 6) })
+	self.slots = {}
+
+	-- touch controls
+	if UIS.TouchEnabled then
+		local tc = new("Frame", { BackgroundTransparency = 1, AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -110, 1, -90), Size = UDim2.fromOffset(200, 150), Parent = hud })
+		local function tb(text, pos, onDown, onUp)
+			local b = btn(text, false, { Position = pos, Size = UDim2.fromOffset(62, 62), TextSize = 12, BackgroundTransparency = 0.2, Parent = tc })
+			b.InputBegan:Connect(function(i)
+				if i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseButton1 then onDown() end
+			end)
+			if onUp then
+				b.InputEnded:Connect(function(i)
+					if i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseButton1 then onUp() end
+				end)
+			end
+		end
+		tb("Strike", UDim2.fromOffset(130, 80), function() if self.onMelee then self.onMelee(true) end end, function() if self.onMelee then self.onMelee(false) end end)
+		tb("Dash", UDim2.fromOffset(60, 80), function() if self.onDash then self.onDash() end end)
+		tb("Charge", UDim2.fromOffset(130, 10), function() if self.onCharge then self.onCharge(true) end end, function() if self.onCharge then self.onCharge(false) end end)
+		tb("Block", UDim2.fromOffset(60, 10), function() if self.onBlock then self.onBlock(true) end end, function() if self.onBlock then self.onBlock(false) end end)
+		tb("Stats", UDim2.fromOffset(-10, 80), function() self:toggle("ledger") end)
+	end
+
+	-- ---------- modal shell ----------
+	local dim = new("Frame", { Name = "Modal", BackgroundColor3 = C.rgb(5, 3, 4), BackgroundTransparency = 0.25, Size = UDim2.fromScale(1, 1), Visible = false, ZIndex = 20, Parent = gui })
+	self.dim = dim
+	local panel = new("Frame", { BackgroundColor3 = T.stone, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromScale(0.94, 0.9), ZIndex = 21, Parent = dim }, { stroke(T.seam, 1), new("UISizeConstraint", { MaxSize = Vector2.new(640, 680) }) })
+	self.panelTitle = txt({ Font = F_DISPLAY, TextSize = 36, Position = UDim2.fromOffset(22, 14), Size = UDim2.new(1, -80, 0, 40), ZIndex = 22, Parent = panel })
+	self.closeBtn = new("TextButton", { BackgroundTransparency = 1, Text = "×", Font = F_BOLD, TextSize = 28, TextColor3 = T.ash, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -12, 0, 10), Size = UDim2.fromOffset(36, 36), ZIndex = 22, Parent = panel })
+	self.closeBtn.MouseButton1Click:Connect(function()
+		if not self.spinning then self:close() end
+	end)
+	self.body = new("ScrollingFrame", { BackgroundTransparency = 1, BorderSizePixel = 0, Position = UDim2.fromOffset(22, 60), Size = UDim2.new(1, -44, 1, -76), CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y, ScrollBarThickness = 4, ScrollBarImageColor3 = T.seam, ZIndex = 22, Parent = panel })
+
+	return self
+end
+
+-- ---------- modal helpers ----------
+function UI:clearBody()
+	for _, c in ipairs(self.body:GetChildren()) do c:Destroy() end
+	local l = Instance.new("UIListLayout")
+	l.Padding = UDim.new(0, 8)
+	l.SortOrder = Enum.SortOrder.LayoutOrder
+	l.Parent = self.body
+	self.order = 0
+end
+function UI:add(inst)
+	self.order = self.order + 1
+	inst.LayoutOrder = self.order
+	inst.ZIndex = 22
+	for _, d in ipairs(inst:GetDescendants()) do
+		if d:IsA("GuiObject") then d.ZIndex = 23 end
+	end
+	inst.Parent = self.body
+	return inst
+end
+function UI:para(text, color, size)
+	return self:add(self.txt({ Text = text, TextColor3 = color or self.T.ash, TextSize = size or 14, TextWrapped = true, Size = UDim2.new(1, -8, 0, 10), AutomaticSize = Enum.AutomaticSize.Y, RichText = true }))
+end
+function UI:heading(text)
+	return self:add(self.txt({ Text = string.upper(text), Font = F_BOLD, TextColor3 = self.T.ash, TextSize = 11, Size = UDim2.new(1, 0, 0, 24), TextYAlignment = Enum.TextYAlignment.Bottom }))
+end
+function UI:row(h)
+	local f = Instance.new("Frame")
+	f.BackgroundTransparency = 1
+	f.Size = UDim2.new(1, -8, 0, h or 36)
+	local l = Instance.new("UIListLayout")
+	l.FillDirection = Enum.FillDirection.Horizontal
+	l.Padding = UDim.new(0, 8)
+	l.VerticalAlignment = Enum.VerticalAlignment.Center
+	l.SortOrder = Enum.SortOrder.LayoutOrder
+	l.Parent = f
+	return f
+end
+function UI:card(h)
+	local f = Instance.new("Frame")
+	f.BackgroundColor3 = self.T.stone2
+	f.Size = UDim2.new(1, -8, 0, h or 60)
+	local s = Instance.new("UIStroke")
+	s.Color = self.T.seam
+	s.Parent = f
+	return f
+end
+
+function UI:open(name, creation)
+	self.openName = name
+	self.creation = creation == true
+	self.dim.Visible = true
+	self.closeBtn.Visible = not self.creation
+	self:render()
+end
+function UI:close()
+	self.openName = nil
+	self.creation = false
+	self.dim.Visible = false
+end
+function UI:toggle(name)
+	if self.openName == name then self:close() else self:open(name) end
+end
+
+function UI:render()
+	if not self.openName or not self.prof then return end
+	self:clearBody()
+	local n = self.openName
+	if n == "spin" then self:renderSpin()
+	elseif n == "ledger" then self:renderLedger()
+	elseif n == "board" then self:renderBoard()
+	elseif n == "shop" then self:renderShop()
+	elseif n == "death" then self:renderDeath()
+	elseif n == "victory" then self:renderVictory() end
+	for _, d in ipairs(self.body:GetDescendants()) do
+		if d:IsA("GuiObject") and d.ZIndex < 23 then d.ZIndex = 23 end
+	end
+end
+
+-- ---------- spin ----------
+function UI:renderSpin()
+	local C, T, p = self.C, self.T, self.prof
+	self.panelTitle.Text = "Shrine of the Heptagram"
+	self:para("Each spin replaces what you carry. Store a bloodline in the Reliquary before you gamble it away.")
+	local tabs = self:add(self:row(34))
+	for i, t in ipairs({ { "line", "Bloodline" }, { "aff", "Affinity" } }) do
+		local b = self.btn(t[2], self.spinTab == t[1], { Size = UDim2.fromOffset(120, 30), LayoutOrder = i, Parent = tabs })
+		b.MouseButton1Click:Connect(function()
+			if self.spinning then return end
+			self.spinTab = t[1]
+			self:render()
+		end)
+	end
+	local reel = self:add(Instance.new("Frame"))
+	reel.BackgroundColor3 = C.rgb(20, 12, 14)
+	reel.Size = UDim2.new(1, -8, 0, 140)
+	local rs = Instance.new("UIStroke")
+	rs.Color = T.seam
+	rs.Parent = reel
+	self.reel = reel
+	self.reelRar = self.txt({ Font = F_BOLD, TextSize = 12, TextXAlignment = Enum.TextXAlignment.Center, Size = UDim2.new(1, 0, 0, 18), Position = UDim2.fromOffset(0, 14), Parent = reel })
+	self.reelName = self.txt({ Font = F_DISPLAY, TextSize = 56, TextXAlignment = Enum.TextXAlignment.Center, Size = UDim2.new(1, 0, 0, 58), Position = UDim2.fromOffset(0, 32), Parent = reel })
+	self.reelPassive = self.txt({ TextSize = 12, TextColor3 = T.ash, TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Center, Size = UDim2.new(1, -24, 0, 40), Position = UDim2.fromOffset(12, 92), Parent = reel })
+	if not self.spinning then
+		local isLine = self.spinTab == "line"
+		local def = isLine and C.SINS[p.sin] or C.AFFS[p.aff]
+		self:setReel(def, (isLine and ("Bloodline of " .. def.name) or (def.name .. " affinity")) .. ". " .. def.passive)
+	end
+	local controls = self:add(self:row(38))
+	self.txt({ Font = F_MONO, TextSize = 12, TextColor3 = T.ash, Size = UDim2.fromOffset(220, 30), LayoutOrder = 1, Text = p.spins .. " spin" .. (p.spins == 1 and "" or "s") .. " left" .. (self.spinTab == "line" and ("  ·  pity " .. p.pity .. "/" .. C.PITY) or ""), Parent = controls })
+	local sb = self.btn(p.spins > 0 and "Spin (1)" or "No spins", true, { LayoutOrder = 2, Parent = controls })
+	sb.Active = p.spins > 0 and not self.spinning
+	sb.AutoButtonColor = sb.Active
+	if not sb.Active then sb.BackgroundTransparency = 0.5 end
+	sb.MouseButton1Click:Connect(function()
+		if self.spinning or self.prof.spins <= 0 then return end
+		self.spinning = true
+		self.animating = false
+		self.send("spin", self.spinTab)
+		self:render()
+		task.delay(3, function()
+			if self.spinning and not self.animating then
+				self.spinning = false
+				self:render()
+			end
+		end)
+	end)
+	local db = self.btn(self.creation and "Enter the Pit" or "Done", false, { LayoutOrder = 3, Size = UDim2.fromOffset(140, 34), Parent = controls })
+	db.MouseButton1Click:Connect(function()
+		if self.spinning then return end
+		if self.creation then self.send("enter") end
+		self:close()
+	end)
+
+	self:heading("Odds")
+	local isLine = self.spinTab == "line"
+	local order = isLine and C.SIN_ORDER or C.AFF_ORDER
+	local tbl = isLine and C.SINS or C.AFFS
+	local tot = 0
+	for _, k in ipairs(order) do tot = tot + tbl[k].w end
+	local grid = self:add(Instance.new("Frame"))
+	grid.BackgroundTransparency = 1
+	grid.Size = UDim2.new(1, -8, 0, 10)
+	grid.AutomaticSize = Enum.AutomaticSize.Y
+	local gl = Instance.new("UIGridLayout")
+	gl.CellSize = UDim2.new(0.5, -6, 0, 22)
+	gl.CellPadding = UDim2.fromOffset(8, 4)
+	gl.SortOrder = Enum.SortOrder.LayoutOrder
+	gl.Parent = grid
+	for i, k in ipairs(order) do
+		local d = tbl[k]
+		local r = C.RARITY[d.rarity]
+		self.txt({ RichText = true, TextSize = 13, LayoutOrder = i, Text = string.format('<b><font color="%s">%s</font></b>  <font color="%s">%d%% %s</font>', hex(d.color), d.name, hex(r.color), math.floor(100 * d.w / tot + 0.5), r.name), Parent = grid })
+	end
+
+	if isLine then
+		self:heading("Reliquary")
+		local slots = self:add(self:row(96))
+		for i = 1, 2 do
+			local s = p.slots[i]
+			local card = self:card(92)
+			card.Size = UDim2.new(0.5, -8, 0, 92)
+			card.LayoutOrder = i
+			card.Parent = slots
+			self.txt({ Font = F_MONO, TextSize = 11, TextColor3 = T.ash, Position = UDim2.fromOffset(10, 6), Size = UDim2.new(1, -20, 0, 14), Text = "Slot " .. i .. (s == "" and " · empty" or ""), Parent = card })
+			if s ~= "" and C.SINS[s] then
+				self.txt({ Font = F_DISPLAY, TextSize = 26, TextColor3 = C.SINS[s].color, Position = UDim2.fromOffset(10, 22), Size = UDim2.new(1, -20, 0, 28), Text = C.SINS[s].name, Parent = card })
+				local eq = self.btn("Equip", false, { Position = UDim2.fromOffset(10, 56), Size = UDim2.fromOffset(80, 28), TextSize = 12, Parent = card })
+				eq.MouseButton1Click:Connect(function() if not self.spinning then self.send("slot", "equip", i) end end)
+				local rl = self.btn("Release", false, { Position = UDim2.fromOffset(98, 56), Size = UDim2.fromOffset(80, 28), TextSize = 12, Parent = card })
+				rl.MouseButton1Click:Connect(function() if not self.spinning then self.send("slot", "release", i) end end)
+			else
+				local st = self.btn("Store " .. C.SINS[p.sin].name, false, { Position = UDim2.fromOffset(10, 52), Size = UDim2.fromOffset(150, 30), TextSize = 12, Parent = card })
+				st.MouseButton1Click:Connect(function() if not self.spinning then self.send("slot", "store", i) end end)
+			end
+		end
+	end
+end
+
+function UI:setReel(def, sub)
+	if not self.reelName or not self.reelName.Parent then return end
+	local r = self.C.RARITY[def.rarity]
+	self.reelRar.Text = string.upper(r.name)
+	self.reelRar.TextColor3 = r.color
+	self.reelName.Text = def.name
+	self.reelName.TextColor3 = def.color
+	self.reelPassive.Text = sub or ""
+end
+
+function UI:spinResult(tab, result)
+	local C = self.C
+	local isLine = tab == "line"
+	local order = isLine and C.SIN_ORDER or C.AFF_ORDER
+	local tbl = isLine and C.SINS or C.AFFS
+	self.spinning = true
+	self.animating = true
+	task.spawn(function()
+		for step = 1, 22 do
+			self:setReel(tbl[C.weightedPick(order, tbl)], "")
+			task.wait(0.04 + step * step * 0.0003)
+		end
+		local def = tbl[result]
+		self:setReel(def, (isLine and ("Bloodline of " .. def.name) or (def.name .. " affinity")) .. ". " .. def.passive)
+		if self.reel and self.reel.Parent then
+			self.reel.BackgroundColor3 = C.RARITY[def.rarity].color
+			TweenService:Create(self.reel, TweenInfo.new(0.9), { BackgroundColor3 = C.rgb(20, 12, 14) }):Play()
+		end
+		self.spinning = false
+		self.animating = false
+		if self.openName == "spin" then
+			local keepReel = def
+			self:render()
+			self:setReel(keepReel, (isLine and ("Bloodline of " .. keepReel.name) or (keepReel.name .. " affinity")) .. ". " .. keepReel.passive)
+		end
+		self:buildSkillbar()
+	end)
+end
+
+-- ---------- ledger ----------
+function UI:renderLedger()
+	local C, T, p = self.C, self.T, self.prof
+	local sd = C.SINS[p.sin]
+	self.panelTitle.Text = p.name
+	self:para(string.format('<font color="%s">%s</font> (<font color="%s">%s</font>) · <font color="%s">%s</font> · %s · Lv %d · %d kills', hex(sd.color), sd.name, hex(C.RARITY[sd.rarity].color), C.RARITY[sd.rarity].name, hex(C.AFFS[p.aff].color), C.AFFS[p.aff].name, C.rankName(p.level), p.level, p.kills), T.bone, 13)
+	self:para(sd.passive, T.ash, 13)
+	self:heading("Stats" .. (p.points > 0 and ("  ·  " .. p.points .. " points to spend") or ""))
+	local grid = self:add(Instance.new("Frame"))
+	grid.BackgroundTransparency = 1
+	grid.Size = UDim2.new(1, -8, 0, 10)
+	grid.AutomaticSize = Enum.AutomaticSize.Y
+	local gl = Instance.new("UIGridLayout")
+	gl.CellSize = UDim2.new(0.5, -6, 0, 104)
+	gl.CellPadding = UDim2.fromOffset(8, 8)
+	gl.SortOrder = Enum.SortOrder.LayoutOrder
+	gl.Parent = grid
+	for i, s in ipairs(C.STAT_ORDER) do
+		local info = C.STAT_INFO[s]
+		local card = self:card(104)
+		card.LayoutOrder = i
+		card.Parent = grid
+		local bonus = sd.bonus[s] and string.format(' <font color="%s" size="11">×%s</font>', hex(sd.color), tostring(sd.bonus[s])) or ""
+		self.txt({ RichText = true, Font = F_BOLD, Position = UDim2.fromOffset(10, 6), Size = UDim2.new(1, -60, 0, 20), Text = info.name .. bonus, Parent = card })
+		self.txt({ Font = F_MONO, TextSize = 20, Position = UDim2.new(1, -60, 0, 4), Size = UDim2.fromOffset(50, 24), TextXAlignment = Enum.TextXAlignment.Right, Text = tostring(p.stats[s]), Parent = card })
+		self.txt({ TextSize = 11, TextColor3 = T.ash, TextWrapped = true, Position = UDim2.fromOffset(10, 28), Size = UDim2.new(1, -20, 0, 28), TextYAlignment = Enum.TextYAlignment.Top, Text = info.d, Parent = card })
+		self.txt({ Font = F_MONO, TextSize = 11, TextColor3 = T.ash, Position = UDim2.fromOffset(10, 56), Size = UDim2.new(1, -20, 0, 14), Text = "Training " .. math.floor(p.train[s]) .. "/" .. C.trainNeed(p, s), Parent = card })
+		for j, n in ipairs({ 1, 5 }) do
+			local b = self.btn("+" .. n, false, { Position = UDim2.fromOffset(10 + (j - 1) * 58, 72), Size = UDim2.fromOffset(50, 26), TextSize = 12, Parent = card })
+			if p.points < n then
+				b.BackgroundTransparency = 0.6
+				b.AutoButtonColor = false
+			end
+			b.MouseButton1Click:Connect(function()
+				if self.prof.points >= n then self.send("stat", s, n) end
+			end)
+		end
+	end
+	self:heading("Skill tree")
+	for _, sk in ipairs(C.currentSkills(p)) do
+		local card = self:add(self:card(58))
+		local locked = p.level < sk.u
+		local m = C.mastery(p, sk.id)
+		local uses = p.mastery[sk.id] or 0
+		self.txt({ Font = F_MONO, TextSize = 13, Position = UDim2.fromOffset(10, 0), Size = UDim2.new(0, 24, 1, 0), Text = sk.key, Parent = card })
+		self.txt({ Font = F_BOLD, TextColor3 = locked and T.ash or sk.color, Position = UDim2.fromOffset(40, 8), Size = UDim2.new(1, -190, 0, 18), Text = sk.name, Parent = card })
+		self.txt({ TextSize = 11, TextColor3 = T.ash, TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, Position = UDim2.fromOffset(40, 27), Size = UDim2.new(1, -190, 0, 28), Text = sk.desc, Parent = card })
+		local right
+		if locked then
+			right = "Unlocks Lv " .. sk.u
+		else
+			local next = C.MAST[m + 1]
+			right = '<font color="' .. hex(T.ember) .. '">Mastery ' .. m .. "/5</font>\n" .. (next and (uses .. "/" .. next .. " uses") or "Mastered")
+		end
+		self.txt({ RichText = true, Font = F_MONO, TextSize = 11, TextColor3 = T.ash, TextXAlignment = Enum.TextXAlignment.Right, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -10, 0, 4), Size = UDim2.fromOffset(140, 50), Text = right .. "\n" .. sk.cost .. " MAL · " .. sk.cd .. "s", Parent = card })
+	end
+	self:heading("Seals of the Hollow Princes")
+	local seals = self:add(self:row(46))
+	for i, b in ipairs(C.BOSSES) do
+		local done = C.hasBoss(p, i)
+		local col = C.SINS[b.sin].color
+		local f = Instance.new("TextLabel")
+		f.Size = UDim2.fromOffset(44, 44)
+		f.BackgroundColor3 = Color3.new(0, 0, 0)
+		f.BackgroundTransparency = done and 0.5 or 1
+		f.Font = F_DISPLAY
+		f.TextSize = 22
+		f.Text = string.sub(C.SINS[b.sin].name, 1, 1)
+		f.TextColor3 = done and col or T.seam
+		f.LayoutOrder = i
+		local s = Instance.new("UIStroke")
+		s.Color = done and col or T.seam
+		s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		s.Parent = f
+		f.Parent = seals
+	end
+end
+
+-- ---------- board ----------
+function UI:missionCard(m, active)
+	local C, T = self.C, self.T
+	local card = self:add(self:card(58))
+	self.txt({ Font = F_DISPLAY, TextSize = 34, TextColor3 = C.RANK_COLORS[m.rank], TextXAlignment = Enum.TextXAlignment.Center, Position = UDim2.fromOffset(6, 0), Size = UDim2.new(0, 40, 1, 0), Text = C.RANK_LETTERS[m.rank], Parent = card })
+	self.txt({ Position = UDim2.fromOffset(54, 8), Size = UDim2.new(1, -170, 0, 20), TextWrapped = true, Text = m.text, Parent = card })
+	local reward = m.xp .. " XP · " .. m.souls .. " souls" .. (m.spin > 0 and " · 1 spin" or "")
+	if active then reward = m.prog .. "/" .. m.n .. " · " .. reward end
+	self.txt({ Font = F_MONO, TextSize = 11, TextColor3 = T.ash, Position = UDim2.fromOffset(54, 30), Size = UDim2.new(1, -170, 0, 18), Text = reward, Parent = card })
+	local b = self.btn(active and "Abandon" or "Accept", not active, { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -10, 0.5, 0), Size = UDim2.fromOffset(100, 30), TextSize = 12, Parent = card })
+	if not active and self.prof.mission then
+		b.BackgroundTransparency = 0.6
+		b.AutoButtonColor = false
+	end
+	b.MouseButton1Click:Connect(function()
+		if active then
+			self.send("abandon")
+		elseif not self.prof.mission then
+			self.send("accept", m.id)
+			self:close()
+		end
+	end)
+end
+
+function UI:renderBoard()
+	local p = self.prof
+	self.panelTitle.Text = "Board of Penance"
+	self:para("One mission at a time. Rewards scale with rank. A and S rank always pay a spin.")
+	if p.mission then
+		self:heading("Active")
+		self:missionCard(p.mission, true)
+	end
+	self:heading("Posted")
+	for _, m in ipairs(p.board or {}) do self:missionCard(m, false) end
+	if not p.board or #p.board == 0 then self:para("No postings. Come back after your current mission.") end
+end
+
+-- ---------- shop ----------
+function UI:renderShop()
+	local p, T = self.prof, self.T
+	self.panelTitle.Text = "The Ferryman"
+	self:para('"Souls for passage, souls for chance. The price climbs with every coin you spend."')
+	self:para("You carry " .. p.souls .. " souls", T.soul, 13)
+	local sp = 300 + p.spinsBought * 100
+	local items = {
+		{ "spin", "Heptagram Spin", "One spin at the Shrine, for bloodline or affinity.", sp },
+		{ "spin5", "Bundle of five spins", "Five spins. Raises the single-spin price by five steps.", math.floor((sp * 5 + 1000) * 0.85) },
+		{ "elixir", "Elixir of Blood", "Fully restores HP and Malice.", 40 + p.level * 6 },
+		{ "reroll", "Fresh postings", "Replaces the missions on the Board of Penance.", 30 + p.level * 3 },
+	}
+	for _, it in ipairs(items) do
+		local card = self:add(self:card(56))
+		self.txt({ Font = F_BOLD, Position = UDim2.fromOffset(12, 8), Size = UDim2.new(1, -150, 0, 18), Text = it[2], Parent = card })
+		self.txt({ TextSize = 12, TextColor3 = T.ash, Position = UDim2.fromOffset(12, 28), Size = UDim2.new(1, -150, 0, 18), TextWrapped = true, Text = it[3], Parent = card })
+		local b = self.btn(it[4] .. " souls", true, { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -10, 0.5, 0), Size = UDim2.fromOffset(120, 30), TextSize = 12, Parent = card })
+		if p.souls < it[4] then
+			b.BackgroundTransparency = 0.6
+			b.AutoButtonColor = false
+		end
+		b.MouseButton1Click:Connect(function()
+			if self.prof.souls >= it[4] then self.send("buy", it[1]) end
+		end)
+	end
+end
+
+-- ---------- death / victory ----------
+function UI:renderDeath()
+	self.panelTitle.Text = "Claimed"
+	local d = self.deathInfo or { lost = 0 }
+	self:para("The Pit took " .. d.lost .. " souls" .. (d.mission and " and your mission is lost" or "") .. ". Your bloodline, levels and stats remain. You will rise in Limbo.", self.T.bone, 15)
+	local b = self:add(self.btn("Rise again", true, { Size = UDim2.fromOffset(160, 36) }))
+	b.MouseButton1Click:Connect(function() self:close() end)
+end
+function UI:renderVictory()
+	self.panelTitle.Text = "Sin Lord"
+	self:para("All seven seals are broken. The Pit kneels to you. Keep hunting, spin for the rarest blood, and push your stats higher.", self.T.bone, 15)
+	local b = self:add(self.btn("Continue", true, { Size = UDim2.fromOffset(160, 36) }))
+	b.MouseButton1Click:Connect(function() self:close() end)
+end
+
+-- ---------- HUD updates ----------
+function UI:setProfile(p)
+	local first = self.prof == nil
+	local changedLine = (not self.prof) or self.prof.sin ~= p.sin or self.prof.aff ~= p.aff or self.prof.level ~= p.level
+	self.prof = p
+	self.hud.Visible = true
+	if first or changedLine then self:buildSkillbar() end
+	local C, T = self.C, self.T
+	local sd = C.SINS[p.sin]
+	local ad = C.AFFS[p.aff]
+	self.hName.Text = p.name
+	self.hName.TextColor3 = sd.color
+	self.hRank.Text = string.upper(C.rankName(p.level)) .. " · LV " .. p.level
+	self.hLine.Text = string.format('<font color="%s">%s</font> <font color="%s">%s</font> · <font color="%s">%s</font>', hex(sd.color), sd.name, hex(C.RARITY[sd.rarity].color), C.RARITY[sd.rarity].name, hex(ad.color), ad.name)
+	self.xpFill.Size = UDim2.fromScale(p.level >= C.LEVEL_CAP and 1 or math.clamp(p.xp / C.xpNeed(p.level), 0, 1), 1)
+	self.hSouls.Text = "Souls " .. p.souls
+	self.hSpins.Text = "Spins " .. p.spins
+	for _, s in ipairs(C.STAT_ORDER) do
+		local u = self.trainUi[s]
+		u.l.Text = C.STAT_INFO[s].short .. " " .. math.floor(C.eff(p, s) + 0.5)
+		u.f.Size = UDim2.fromScale(math.clamp(p.train[s] / C.trainNeed(p, s), 0, 1), 1)
+	end
+	if p.mission then
+		self.mission.Visible = true
+		self.mLbl.Text = C.RANK_LETTERS[p.mission.rank] .. "-RANK MISSION"
+		self.mLbl.TextColor3 = C.RANK_COLORS[p.mission.rank]
+		self.mTxt.Text = p.mission.text .. " (" .. p.mission.prog .. "/" .. p.mission.n .. ")"
+	else
+		self.mission.Visible = false
+	end
+	for i, d in ipairs(self.gateDots) do
+		local st = d:FindFirstChildOfClass("UIStroke")
+		if st then st.Color = C.hasBoss(p, i) and T.seam or C.SINS[C.BOSSES[i].sin].color end
+	end
+	if self.openName and not self.spinning then self:render() end
+end
+
+function UI:buildSkillbar()
+	local C, T, p = self.C, self.T, self.prof
+	if not p then return end
+	for _, c in ipairs(self.skillbar:GetChildren()) do
+		if c:IsA("GuiObject") then c:Destroy() end
+	end
+	self.slots = {}
+	local small = self.gui.AbsoluteSize.X < 700
+	local w, h = small and 44 or 58, small and 52 or 64
+	local function mk(order, key, glyph, name, color, id, cost, unlock)
+		local b = Instance.new("TextButton")
+		b.AutoButtonColor = false
+		b.Text = ""
+		b.BackgroundColor3 = Color3.new(0, 0, 0)
+		b.BackgroundTransparency = 0.2
+		b.Size = UDim2.fromOffset(w, h)
+		b.LayoutOrder = order
+		b.ClipsDescendants = true
+		local s = Instance.new("UIStroke")
+		s.Color = T.seam
+		s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		s.Parent = b
+		self.txt({ Font = F_MONO, TextSize = 10, TextColor3 = T.ash, Position = UDim2.fromOffset(4, 3), Size = UDim2.fromOffset(20, 12), Text = key, Parent = b })
+		if cost then self.txt({ Font = F_MONO, TextSize = 9, TextColor3 = C.rgb(167, 119, 255), AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -3, 0, 3), Size = UDim2.fromOffset(24, 12), TextXAlignment = Enum.TextXAlignment.Right, Text = tostring(cost), Parent = b }) end
+		self.txt({ Font = F_DISPLAY, TextSize = small and 20 or 24, TextColor3 = color, TextXAlignment = Enum.TextXAlignment.Center, Position = UDim2.fromOffset(0, small and 12 or 14), Size = UDim2.new(1, 0, 0, 24), Text = glyph, Parent = b })
+		if not small then self.txt({ TextSize = 9, TextXAlignment = Enum.TextXAlignment.Center, TextWrapped = true, Position = UDim2.new(0, 2, 1, -22), Size = UDim2.new(1, -4, 0, 20), Text = name, Parent = b }) end
+		local cd = Instance.new("Frame")
+		cd.BackgroundColor3 = Color3.new(0, 0, 0)
+		cd.BackgroundTransparency = 0.3
+		cd.BorderSizePixel = 0
+		cd.AnchorPoint = Vector2.new(0, 1)
+		cd.Position = UDim2.fromScale(0, 1)
+		cd.Size = UDim2.fromScale(1, 0)
+		cd.ZIndex = 2
+		cd.Parent = b
+		local cdt = self.txt({ Font = F_MONO, TextSize = 15, TextXAlignment = Enum.TextXAlignment.Center, Size = UDim2.fromScale(1, 1), TextStrokeTransparency = 0.4, ZIndex = 3, Text = "", Parent = b })
+		b.Parent = self.skillbar
+		local slot = { b = b, stroke = s, cd = cd, cdt = cdt, id = id, unlock = unlock, color = color, key = key }
+		self.slots[#self.slots + 1] = slot
+		b.MouseButton1Click:Connect(function()
+			if self.onSlot then self.onSlot(key) end
+		end)
+		return slot
+	end
+	mk(0, "M1", "St", "Strike", T.bone, nil, nil, 1)
+	for i, sk in ipairs(C.currentSkills(p)) do
+		local words = {}
+		for w2 in string.gmatch(sk.name, "[%a]+") do words[#words + 1] = string.sub(w2, 1, 1) end
+		mk(i, sk.key, table.concat(words, "", 1, math.min(2, #words)), sk.name, sk.color, sk.id, sk.cost, sk.u)
+	end
+	mk(10, "G", "Aw", "Awaken", C.SINS[p.sin].color, "awaken", nil, 12)
+end
+
+function UI:cooldown(id, dur)
+	self.cdUntil[id] = os.clock() + dur
+	self.cdDur[id] = dur
+end
+
+function UI:update(player)
+	local p = self.prof
+	if not p then return end
+	local C, T = self.C, self.T
+	local char = player.Character
+	local hum = char and char:FindFirstChildOfClass("Humanoid")
+	if hum then
+		local mh = math.max(1, hum.MaxHealth)
+		self.hpFill.Size = UDim2.fromScale(math.clamp(hum.Health / mh, 0, 1), 1)
+		local sh = player:GetAttribute("Shield") or 0
+		self.hpTxt.Text = math.ceil(math.max(0, hum.Health)) .. "/" .. math.floor(mh) .. (sh > 0 and (" +" .. sh) or "")
+	end
+	local mal = player:GetAttribute("Malice") or 0
+	local mm = player:GetAttribute("MaxMalice") or 100
+	self.malFill.Size = UDim2.fromScale(math.clamp(mal / math.max(1, mm), 0, 1), 1)
+	self.malTxt.Text = mal .. "/" .. mm
+	local now = os.clock()
+	for _, s in ipairs(self.slots) do
+		local locked = p.level < (s.unlock or 1)
+		local frac, label = 0, ""
+		if s.id == "awaken" then
+			local cdl = player:GetAttribute("AwakenCd") or 0
+			if player:GetAttribute("Awakened") then
+				label = tostring(math.ceil(player:GetAttribute("AwakenLeft") or 0))
+			elseif cdl > 0 then
+				frac = cdl / 45
+				label = tostring(math.ceil(cdl))
+			end
+		elseif s.id then
+			local u = self.cdUntil[s.id]
+			if u and u > now then
+				frac = (u - now) / math.max(0.01, self.cdDur[s.id])
+				local left = u - now
+				label = left < 1 and string.format("%.1f", left) or tostring(math.ceil(left))
+			end
+		end
+		if locked then
+			frac = 1
+			label = "Lv" .. s.unlock
+		end
+		s.cd.Size = UDim2.fromScale(1, math.clamp(frac, 0, 1))
+		s.cdt.Text = label
+		s.stroke.Color = (not locked and frac <= 0) and s.color or T.seam
+	end
+	if mal < 20 and not player:GetAttribute("Charging") and char and char:FindFirstChild("HumanoidRootPart") and char.HumanoidRootPart.Position.Magnitude > C.WORLD.villageR then
+		self.hint.Visible = true
+		self.hint.Text = "Hold C to charge Malice"
+	else
+		self.hint.Visible = false
+	end
+end
+
+function UI:updateMinimap(player, elite)
+	local char = player.Character
+	local hrp = char and char:FindFirstChild("HumanoidRootPart")
+	if hrp then self.meDot.Position = self.mapPos(hrp.Position.X, hrp.Position.Z) end
+	local folder = workspace:FindFirstChild("Sinborn")
+	folder = folder and folder:FindFirstChild("Enemies")
+	local i = 0
+	self.markDot.Visible = false
+	if folder then
+		for _, m in ipairs(folder:GetChildren()) do
+			local pp = m:IsA("Model") and m.PrimaryPart
+			if pp then
+				if m.Name == "Boss" or m.Name == "Elite" then
+					if m == elite or m.Name == "Boss" then
+						self.markDot.Visible = true
+						self.markDot.Position = self.mapPos(pp.Position.X, pp.Position.Z)
+					end
+				elseif i < #self.enemyDots then
+					i = i + 1
+					local d = self.enemyDots[i]
+					d.Visible = true
+					d.Position = self.mapPos(pp.Position.X, pp.Position.Z)
+				end
+			end
+		end
+	end
+	for j = i + 1, #self.enemyDots do self.enemyDots[j].Visible = false end
+end
+
+function UI:toast(text, color)
+	self.toastN = self.toastN + 1
+	local f = Instance.new("Frame")
+	f.BackgroundColor3 = Color3.new(0, 0, 0)
+	f.BackgroundTransparency = 0.2
+	f.Size = UDim2.fromOffset(10, 10)
+	f.AutomaticSize = Enum.AutomaticSize.XY
+	f.LayoutOrder = -self.toastN
+	local s = Instance.new("UIStroke")
+	s.Color = self.T.seam
+	s.Parent = f
+	local p = Instance.new("UIPadding")
+	p.PaddingLeft = UDim.new(0, 10)
+	p.PaddingRight = UDim.new(0, 12)
+	p.PaddingTop = UDim.new(0, 7)
+	p.PaddingBottom = UDim.new(0, 7)
+	p.Parent = f
+	local edge = Instance.new("Frame")
+	edge.BackgroundColor3 = color or self.T.blood
+	edge.BorderSizePixel = 0
+	edge.AnchorPoint = Vector2.new(1, 0)
+	edge.Position = UDim2.new(1, 12, 0, -7)
+	edge.Size = UDim2.new(0, 3, 1, 14)
+	edge.Parent = f
+	local t = self.txt({ TextSize = 13, Text = text, TextWrapped = true, Size = UDim2.fromOffset(10, 16), AutomaticSize = Enum.AutomaticSize.XY, Parent = f })
+	local c = Instance.new("UISizeConstraint")
+	c.MaxSize = Vector2.new(300, 200)
+	c.Parent = t
+	f.Parent = self.toasts
+	local kids = {}
+	for _, k in ipairs(self.toasts:GetChildren()) do
+		if k:IsA("Frame") then kids[#kids + 1] = k end
+	end
+	if #kids > 5 then
+		table.sort(kids, function(a, b) return a.LayoutOrder < b.LayoutOrder end)
+		for idx = 6, #kids do kids[idx]:Destroy() end
+	end
+	task.delay(3.4, function()
+		if f.Parent then
+			TweenService:Create(f, TweenInfo.new(0.4), { BackgroundTransparency = 1 }):Play()
+			TweenService:Create(t, TweenInfo.new(0.4), { TextTransparency = 1 }):Play()
+			task.wait(0.45)
+			f:Destroy()
+		end
+	end)
+end
+
+function UI:banner(main, sub, color)
+	self.bannerN = (self.bannerN or 0) + 1
+	local n = self.bannerN
+	self.bannerMain.Text = main
+	self.bannerMain.TextColor3 = color or self.T.bone
+	self.bannerSub.Text = string.upper(sub or "")
+	for _, l in ipairs({ self.bannerMain, self.bannerSub }) do
+		l.TextTransparency = 0
+		l.TextStrokeTransparency = 0.5
+	end
+	task.delay(2.6, function()
+		if self.bannerN ~= n then return end
+		for _, l in ipairs({ self.bannerMain, self.bannerSub }) do
+			TweenService:Create(l, TweenInfo.new(0.5), { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
+		end
+	end)
+end
+
+function UI:boss(d)
+	if not d.show then
+		self.bossbar.Visible = false
+		return
+	end
+	self.bossbar.Visible = true
+	if d.name then self.bossName.Text = d.name end
+	if d.color then
+		self.bossName.TextColor3 = d.color
+		self.bossFill.BackgroundColor3 = d.color
+	end
+	self.bossFill.Size = UDim2.fromScale(math.clamp(d.frac or 1, 0, 1), 1)
+	self.bossHp.Text = tostring(d.hp or "")
+end
+
+return UI
+]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX0000000A"><Properties><string name="Name">FX</string><ProtectedString name="Source"><![CDATA[-- Client-side visual effects. The server sends (kind, data); this draws neon shapes locally.
+
+local TweenService = game:GetService("TweenService")
+local Debris = game:GetService("Debris")
+
+local FX = {}
+local folder = Instance.new("Folder")
+folder.Name = "SinbornLocalFX"
+folder.Parent = workspace
+FX.folder = folder
+
+local GROUND = 0.35
+local auras = {}
+
+local function neon(size, cf, color, transparency, shape)
+	local p = Instance.new("Part")
+	p.Anchored = true
+	p.CanCollide = false
+	p.CanQuery = false
+	p.CanTouch = false
+	p.CastShadow = false
+	p.Material = Enum.Material.Neon
+	if shape then p.Shape = shape end
+	p.Size = size
+	p.CFrame = cf
+	p.Color = color
+	p.Transparency = transparency or 0
+	p.Parent = folder
+	return p
+end
+
+local function flatDisc(pos, r, color, transparency, y)
+	local d = math.max(0.1, r * 2)
+	return neon(Vector3.new(0.08, d, d), CFrame.new(pos.X, y or GROUND, pos.Z) * CFrame.Angles(0, 0, math.rad(90)), color, transparency, Enum.PartType.Cylinder)
+end
+
+local function tween(inst, t, props, style)
+	local tw = TweenService:Create(inst, TweenInfo.new(t, style or Enum.EasingStyle.Quad, Enum.EasingDirection.Out), props)
+	tw:Play()
+	return tw
+end
+
+local function fade(p, t)
+	tween(p, t, { Transparency = 1 })
+	Debris:AddItem(p, t + 0.05)
+end
+
+local function flatLook(pos, dir, y)
+	local o = Vector3.new(pos.X, y, pos.Z)
+	return CFrame.lookAt(o, o + Vector3.new(dir.X, 0, dir.Z))
+end
+
+local handlers = {}
+
+handlers.ring = function(d)
+	local p = flatDisc(d.pos, d.r0, d.color, 0.25, GROUND + 0.05)
+	local s = math.max(0.1, d.r1 * 2)
+	tween(p, d.dur, { Size = Vector3.new(0.08, s, s), Transparency = 1 })
+	Debris:AddItem(p, d.dur + 0.05)
+end
+
+handlers.disc = function(d)
+	local p = flatDisc(d.pos, d.r, d.color, 0.45, GROUND + 0.04)
+	fade(p, d.dur or 0.25)
+end
+
+handlers.tele = function(d)
+	local outer = flatDisc(d.pos, d.r, d.color, d.enemy and 0.7 or 0.8, GROUND)
+	local inner = flatDisc(d.pos, 0.05, d.color, d.enemy and 0.45 or 0.6, GROUND + 0.02)
+	local s = d.r * 2
+	tween(inner, d.dur, { Size = Vector3.new(0.08, s, s) }, Enum.EasingStyle.Linear)
+	if d.follow then
+		local t0 = os.clock()
+		local conn
+		conn = game:GetService("RunService").RenderStepped:Connect(function()
+			if os.clock() - t0 > d.dur or not d.follow.Parent then
+				conn:Disconnect()
+				return
+			end
+			local p = d.follow.Position
+			outer.CFrame = CFrame.new(p.X, GROUND, p.Z) * CFrame.Angles(0, 0, math.rad(90))
+			inner.CFrame = CFrame.new(p.X, GROUND + 0.02, p.Z) * CFrame.Angles(0, 0, math.rad(90))
+		end)
+	end
+	Debris:AddItem(outer, d.dur)
+	Debris:AddItem(inner, d.dur)
+end
+
+handlers.teleLine = function(d)
+	local base = flatLook(d.pos, d.dir, GROUND)
+	local outer = neon(Vector3.new(d.w, 0.08, d.len), base * CFrame.new(0, 0, -d.len / 2), d.color, d.enemy and 0.7 or 0.8)
+	local inner = neon(Vector3.new(d.w, 0.1, 0.05), base * CFrame.new(0, 0.02, -0.025), d.color, d.enemy and 0.45 or 0.6)
+	tween(inner, d.dur, { Size = Vector3.new(d.w, 0.1, d.len), CFrame = base * CFrame.new(0, 0.02, -d.len / 2) }, Enum.EasingStyle.Linear)
+	Debris:AddItem(outer, d.dur)
+	Debris:AddItem(inner, d.dur)
+end
+
+handlers.beam = function(d)
+	local base = flatLook(d.pos, d.dir, 3)
+	local h = math.max(1.2, d.w * 0.5)
+	local p = neon(Vector3.new(d.w, h, d.len), base * CFrame.new(0, 0, -d.len / 2), d.color, 0.15)
+	local core = neon(Vector3.new(d.w * 0.3, h * 0.4, d.len), base * CFrame.new(0, 0, -d.len / 2), Color3.new(1, 1, 1), 0.1)
+	tween(p, d.dur, { Size = Vector3.new(d.w * 0.3, h * 0.3, d.len), Transparency = 1 })
+	fade(core, d.dur)
+	Debris:AddItem(p, d.dur + 0.05)
+end
+
+handlers.cone = function(d)
+	local a0 = math.atan2(d.dir.Z, d.dir.X)
+	local n = 5
+	for i = 0, n - 1 do
+		local a = a0 + (i / (n - 1) - 0.5) * 2 * d.half
+		local dir = Vector3.new(math.cos(a), 0, math.sin(a))
+		local base = flatLook(d.pos, dir, 2)
+		local p = neon(Vector3.new(d.range * 0.2, 0.3, d.range * 0.3), base * CFrame.new(0, 0, -d.range * 0.3), d.color, 0.3)
+		tween(p, d.dur, { CFrame = base * CFrame.new(0, 0, -d.range * 0.85), Size = Vector3.new(d.range * 0.35, 0.3, d.range * 0.3), Transparency = 1 })
+		Debris:AddItem(p, d.dur + 0.05)
+	end
+end
+
+handlers.slash = function(d)
+	local a0 = math.atan2(d.dir.Z, d.dir.X)
+	local n = 6
+	local y = d.pos.Y
+	for i = 0, n - 1 do
+		local t = i / (n - 1)
+		if d.flip then t = 1 - t end
+		local a = a0 + (t - 0.5) * 2
+		local p = Vector3.new(d.pos.X + math.cos(a) * d.r, y, d.pos.Z + math.sin(a) * d.r)
+		local tangent = Vector3.new(-math.sin(a), 0, math.cos(a))
+		local part = neon(Vector3.new(0.25, 0.25, d.r * 0.45), CFrame.lookAt(p, p + tangent), d.color, 1)
+		task.delay(i * 0.018, function()
+			part.Transparency = 0.1
+			fade(part, 0.14)
+		end)
+	end
+end
+
+handlers.pillar = function(d)
+	local w = d.r * 0.8
+	local p = neon(Vector3.new(40, w, w), CFrame.new(d.pos.X, 20, d.pos.Z) * CFrame.Angles(0, 0, math.rad(90)), d.color, 0.2, Enum.PartType.Cylinder)
+	tween(p, d.dur, { Size = Vector3.new(40, w * 0.2, w * 0.2), Transparency = 1 })
+	Debris:AddItem(p, d.dur + 0.05)
+	local disc = flatDisc(d.pos, d.r, d.color, 0.4, GROUND + 0.05)
+	fade(disc, d.dur)
+end
+
+handlers.field = function(d)
+	local p = flatDisc(d.pos, d.r, d.color, 0.82, GROUND)
+	local ring = flatDisc(d.pos, d.r * 0.6, d.color, 0.7, GROUND + 0.02)
+	local s = d.r * 2
+	if d.pull then
+		ring.Size = Vector3.new(0.08, s, s)
+		tween(ring, 0.6, { Size = Vector3.new(0.08, 0.2, 0.2) })
+		task.spawn(function()
+			local t = 0
+			while t < d.dur - 0.6 and ring.Parent do
+				task.wait(0.6)
+				t = t + 0.6
+				ring.Size = Vector3.new(0.08, s, s)
+				tween(ring, 0.6, { Size = Vector3.new(0.08, 0.2, 0.2) })
+			end
+		end)
+	else
+		tween(ring, d.dur, { Size = Vector3.new(0.08, s, s) }, Enum.EasingStyle.Sine)
+	end
+	task.delay(d.dur - 0.3, function()
+		if p.Parent then fade(p, 0.3) end
+		if ring.Parent then fade(ring, 0.3) end
+	end)
+end
+
+handlers.burst = function(d)
+	local holder = Instance.new("Part")
+	holder.Anchored = true
+	holder.CanCollide = false
+	holder.CanQuery = false
+	holder.CanTouch = false
+	holder.Transparency = 1
+	holder.Size = Vector3.new(0.2, 0.2, 0.2)
+	holder.CFrame = CFrame.new(d.pos)
+	holder.Parent = folder
+	local pe = Instance.new("ParticleEmitter")
+	pe.Color = ColorSequence.new(d.color)
+	pe.LightEmission = 1
+	pe.LightInfluence = 0
+	pe.Rate = 0
+	pe.Speed = NumberRange.new((d.speed or 15) * 0.3, d.speed or 15)
+	pe.SpreadAngle = Vector2.new(180, 180)
+	pe.Lifetime = NumberRange.new(0.25, 0.6)
+	pe.Drag = 4
+	pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.45), NumberSequenceKeypoint.new(1, 0) })
+	pe.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(1, 1) })
+	pe.Parent = holder
+	pe:Emit(math.min(80, d.n or 10))
+	Debris:AddItem(holder, 1.2)
+end
+
+local textCount = 0
+handlers.text = function(d)
+	if textCount > 40 then return end
+	textCount = textCount + 1
+	local holder = Instance.new("Part")
+	holder.Anchored = true
+	holder.CanCollide = false
+	holder.CanQuery = false
+	holder.CanTouch = false
+	holder.Transparency = 1
+	holder.Size = Vector3.new(0.2, 0.2, 0.2)
+	holder.CFrame = CFrame.new(d.pos + Vector3.new(math.random() - 0.5, 0, math.random() - 0.5))
+	holder.Parent = folder
+	local bb = Instance.new("BillboardGui")
+	bb.Size = UDim2.fromOffset(160, 40)
+	bb.AlwaysOnTop = true
+	bb.LightInfluence = 0
+	bb.MaxDistance = 120
+	local t = Instance.new("TextLabel")
+	t.BackgroundTransparency = 1
+	t.Size = UDim2.fromScale(1, 1)
+	t.Font = Enum.Font.GothamBlack
+	t.TextSize = d.big and 26 or 19
+	t.Text = d.str
+	t.TextColor3 = d.color or Color3.new(1, 1, 1)
+	t.TextStrokeTransparency = 0.2
+	t.Parent = bb
+	bb.Parent = holder
+	tween(holder, 0.9, { CFrame = holder.CFrame + Vector3.new(0, 3, 0) })
+	tween(t, 0.9, { TextTransparency = 1, TextStrokeTransparency = 1 }, Enum.EasingStyle.Quint)
+	task.delay(0.95, function()
+		holder:Destroy()
+		textCount = textCount - 1
+	end)
+end
+
+handlers.aura = function(d)
+	local c = d.char
+	if not c then return end
+	if auras[c] then
+		auras[c]:Destroy()
+		auras[c] = nil
+	end
+	if d.on then
+		local hrp = c:FindFirstChild("HumanoidRootPart")
+		if not hrp then return end
+		local att = Instance.new("Attachment")
+		att.Name = "SinAura"
+		local pe = Instance.new("ParticleEmitter")
+		pe.Color = ColorSequence.new(d.color)
+		pe.LightEmission = 1
+		pe.Rate = 40
+		pe.Speed = NumberRange.new(2, 6)
+		pe.Acceleration = Vector3.new(0, 6, 0)
+		pe.SpreadAngle = Vector2.new(180, 180)
+		pe.Lifetime = NumberRange.new(0.4, 0.9)
+		pe.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.5), NumberSequenceKeypoint.new(1, 0) })
+		pe.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.2), NumberSequenceKeypoint.new(1, 1) })
+		pe.Parent = att
+		local light = Instance.new("PointLight")
+		light.Color = d.color
+		light.Range = 14
+		light.Brightness = 2
+		light.Parent = att
+		att.Parent = hrp
+		auras[c] = att
+	end
+end
+
+function FX.play(kind, d)
+	local h = handlers[kind]
+	if h and type(d) == "table" then
+		local ok, err = pcall(h, d)
+		if not ok then warn("[Sinborn FX] " .. kind .. ": " .. tostring(err)) end
+	end
+end
+
+return FX
+]]></ProtectedString></Properties></Item></Item></Item><Item class="StarterCharacterScripts" referent="RBX0000000D"><Properties><string name="Name">StarterCharacterScripts</string></Properties></Item></Item></roblox>
