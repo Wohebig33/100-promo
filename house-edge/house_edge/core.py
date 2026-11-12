@@ -4,6 +4,8 @@ from __future__ import annotations
 import json
 import os
 import secrets
+import subprocess
+import sys
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -19,7 +21,9 @@ DEFAULT_SETTINGS = {
     "sounds": True,
     "hotkeys": True,
     "partyEvery": 20,      # seconds between Party Mode surprises
+    "panelHotkey": "Ctrl+Shift+H",  # show or hide the panel over the game
 }
+PANEL = "__panel__"
 
 
 class Core:
@@ -35,9 +39,36 @@ class Core:
         self.events: list[dict] = []
         self.seq = 0
         self.window = None  # set by app.py when a pywebview window is open
+        self.panel_hidden = False
+        self.launched: subprocess.Popen | None = None  # the game, when Steam starts it through House Edge
+        self.launch_tried = False
+        self.gone_for = 0
+        self.on_exit = None  # set by app.py: quit House Edge once a game it launched has closed
         threading.Thread(target=self._watch_loop, daemon=True, name="watch").start()
         threading.Thread(target=self._lock_loop, daemon=True, name="locks").start()
-        hotkeys.HotkeyThread(self._bindings, self._hotkey, lambda: self.settings["hotkeys"] and self.proc is not None).start()
+        hotkeys.HotkeyThread(self._bindings, self._hotkey, lambda: bool(self.settings["hotkeys"])).start()
+
+    # ------------------------------------------------------------ starting the game (Steam launch options)
+    def launch(self, cmd: list[str]):
+        """Start the game. Steam calls `HouseEdge.exe %command%`, so cmd is the game's own command line.
+
+        House Edge attaches to the game as soon as it's up and quits when it closes, so Steam sees one session.
+        """
+        exe = cmd[0]
+        cwd = os.path.dirname(os.path.abspath(exe)) if os.path.isfile(exe) else None
+        self.launched = subprocess.Popen(cmd, cwd=cwd)
+        name = os.path.basename(exe.replace("\\", "/"))
+        if not self.settings.get("autoAttach"):
+            self.settings["autoAttach"] = name  # covers games whose launcher starts a second .exe
+            self.save_settings()
+        self.emit("launch", f"Starting {name}\u2026")
+
+    def launch_option(self) -> str:
+        """What to paste into the game's Steam Launch Options."""
+        if getattr(sys, "frozen", False):
+            return f'"{sys.executable}" %command%'
+        run = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "run.py")
+        return f'"{sys.executable}" "{run}" %command%'
 
     # ------------------------------------------------------------ events (toasts in the panel)
     def emit(self, kind: str, text: str, **extra):
@@ -82,7 +113,8 @@ class Core:
             tick += 1
             try:
                 if self.proc is not None:
-                    if not self.proc.alive():
+                    started_here = self.launched is not None and self.launched.pid == self.proc.pid
+                    if (started_here and self.launched.poll() is not None) or not self.proc.alive():
                         name = self.game
                         self.detach(quiet=True)
                         self.emit("detach", f"{name} closed. Waiting for it to come back…")
@@ -92,6 +124,21 @@ class Core:
                             self.modules = mods
                     continue
                 target = (self.settings.get("autoAttach") or "").lower()
+                if self.launched is not None:
+                    alive = self.launched.poll() is None
+                    if alive and not self.launch_tried:
+                        self.launch_tried = True
+                        time.sleep(1.5)  # let the game finish starting up
+                        if self.launched.poll() is None:
+                            self.attach(self.launched.pid)
+                            continue
+                    if alive or (target and any(p.name.lower() == target for p in list_processes())):
+                        self.gone_for = 0
+                    else:
+                        self.gone_for += 1
+                        if self.gone_for >= 5 and self.on_exit:  # the game we started is gone: hand Steam back
+                            self.on_exit()
+                            return
                 if target:
                     match = next((p for p in list_processes() if p.name.lower() == target), None)
                     if match:
@@ -120,9 +167,33 @@ class Core:
     # ------------------------------------------------------------ hotkeys
     def _bindings(self):
         with self.lock:
-            return {m["hotkey"]: m["id"] for m in self.mods if m.get("hotkey")}
+            b = {m["hotkey"]: m["id"] for m in self.mods if m.get("hotkey") and self.proc is not None}
+            if self.settings.get("panelHotkey"):
+                b[self.settings["panelHotkey"]] = PANEL
+            return b
+
+    def toggle_panel(self):
+        """Show or hide the panel window. Pops it over the game in windowed or borderless mode."""
+        w = self.window
+        if w is None:
+            return
+        try:
+            if self.panel_hidden:
+                w.show()
+                w.restore()
+                w.on_top = True  # come to the front over the game
+                if not self.settings.get("onTop", True):
+                    w.on_top = False
+            else:
+                w.hide()
+            self.panel_hidden = not self.panel_hidden
+        except Exception:  # noqa: BLE001
+            pass
 
     def _hotkey(self, mod_id):
+        if mod_id == PANEL:
+            self.toggle_panel()
+            return
         m = self.find(mod_id)
         if not m:
             return
@@ -242,6 +313,8 @@ class Core:
                 "scan": self.scanner.status(),
                 "settings": self.settings,
                 "hotkeysSupported": hotkeys.SUPPORTED,
+                "launchOption": self.launch_option(),
+                "launched": self.launched is not None,
                 "events": [e for e in self.events if e["seq"] > since],
                 "seq": self.seq,
             }
@@ -279,6 +352,8 @@ class Core:
 
     def update_settings(self, fields: dict):
         with self.lock:
+            if fields.get("panelHotkey") and not hotkeys.parse(fields["panelHotkey"]):
+                raise ValueError(f'"{fields["panelHotkey"]}" isn\u2019t a hotkey House Edge knows.')
             for k in DEFAULT_SETTINGS:
                 if k in fields:
                     self.settings[k] = fields[k]

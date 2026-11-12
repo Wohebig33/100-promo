@@ -22,9 +22,24 @@ python run.py
 
 Add `--browser` to open the panel in your browser instead of its own window.
 
+## Start it with the game from Steam (easiest)
+
+1. Open House Edge once, go to **Settings**, and press **Copy** next to **Start with the game from Steam**. The line looks like this:
+   ```
+   "C:\Users\you\Downloads\HouseEdge.exe" %command%
+   ```
+2. In your Steam **Library**, right-click the game and choose **Properties**. Under **General**, paste the line into **Launch Options**.
+3. Press **Play** in Steam as usual.
+
+House Edge then opens with the game and joins it right away, and it closes when you quit the game. Steam still counts it as playing the game. If you move `HouseEdge.exe` somewhere else later, copy the line again.
+
+**Bring the panel up in the game:** press **Ctrl+Shift+H** to show or hide it. You can change the key in Settings. Set the game to **windowed** or **borderless fullscreen** in its video settings. In exclusive fullscreen, Windows won't draw another window on top of the game, but mod hotkeys still work there.
+
+To undo it, clear the Launch Options box in Steam.
+
 ## Use it
 
-1. **Start the game** from Steam, then start House Edge.
+1. **Start the game** from Steam, then start House Edge. Or set it up to start with the game, as above.
 2. **Pick the game** from the list. House Edge remembers it and joins on its own every time the game starts.
 3. **Make a mod with the Value finder:**
    - Find a number on screen, say **500 chips**. Type `500` and press **First scan**.

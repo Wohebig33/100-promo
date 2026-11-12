@@ -136,7 +136,7 @@ if IS_WINDOWS:
             e.dwSize = ctypes.sizeof(e)
             ok = Process32FirstW(snap, ctypes.byref(e))
             while ok:
-                if e.th32ProcessID:
+                if e.th32ProcessID and e.th32ProcessID != os.getpid():  # never list House Edge itself
                     out.append(ProcInfo(e.th32ProcessID, e.szExeFile))
                 ok = Process32NextW(snap, ctypes.byref(e))
         finally:
@@ -271,7 +271,12 @@ else:
                 self.fd = None
 
         def alive(self) -> bool:
-            return os.path.exists(f"/proc/{self.pid}")
+            try:
+                with open(f"/proc/{self.pid}/stat") as f:
+                    state = f.read().rsplit(")", 1)[1].split()[0]
+                return state not in ("Z", "X")  # a zombie has exited, it just hasn't been reaped yet
+            except (OSError, IndexError):
+                return False
 
         def read(self, addr: int, size: int) -> bytes | None:
             try:

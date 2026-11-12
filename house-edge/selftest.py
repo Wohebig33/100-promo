@@ -128,6 +128,7 @@ def main():
         core = Core()
         core.attach(pid)
         check("core attached", core.proc is not None and core.game)
+        core.settings["autoAttach"] = "no-such-game.exe"  # the stand-in is just "python", so don't rejoin other Pythons
         m = core.add_mod({"name": "Chips", "type": "int32", "address": a_money})
         check("found address becomes a session mod", m["session"] == pid)
         core.set_lock(m["id"], True, 1000)
@@ -186,6 +187,21 @@ def main():
         time.sleep(2.5)
         check("game exit detected", core.proc is None)
         check("session mod marked stale", core.state()["mods"][0]["stale"])
+
+        # --- Steam launch options: House Edge starts the game, joins it, and quits once it closes
+        core2 = Core()
+        core2.settings["autoAttach"] = "no-such-game.exe"
+        exited = threading.Event()
+        core2.on_exit = exited.set
+        core2.launch([sys.executable, "-c", "import time; time.sleep(4)"])
+        t0 = time.time()
+        while core2.proc is None and time.time() - t0 < 15:
+            time.sleep(0.1)
+        check("game started by House Edge is joined", core2.proc is not None and core2.proc.pid == core2.launched.pid)
+        check("House Edge quits after the game it started closes", exited.wait(30))
+        check("panel show/hide hotkey bound", core2._bindings().get("Ctrl+Shift+H") == "__panel__")
+        check("Steam launch option ends with %command%", core2.launch_option().endswith("%command%"))
+        check("own process not listed", all(p.pid != os.getpid() for p in list_processes()))
     finally:
         if child.poll() is None:
             child.kill()

@@ -22,9 +22,24 @@ def main(argv=None):
     ap.add_argument("--browser", action="store_true", help="open the panel in your web browser instead of its own window")
     ap.add_argument("--headless", action="store_true", help="don't open anything, just print the panel's address")
     ap.add_argument("--version", action="version", version=f"House Edge {__version__}")
+    ap.add_argument("game", nargs=argparse.REMAINDER,
+                    help="a game to start and join. In Steam, set the game's Launch Options to: HouseEdge.exe %%command%%")
     args = ap.parse_args(argv)
 
     core = Core()
+    window = None
+
+    def quit_with_game():
+        if window is not None:
+            try:
+                window.destroy()
+            except Exception:  # noqa: BLE001
+                pass
+        os._exit(0)
+
+    if args.game:
+        core.on_exit = quit_with_game
+        core.launch(args.game)
     srv, token = make_server(core, args.port)
     url = f"http://127.0.0.1:{srv.server_address[1]}/?t={token}"
     threading.Thread(target=srv.serve_forever, daemon=True, name="http").start()
@@ -40,7 +55,7 @@ def main(argv=None):
         except ImportError:
             webview = None
         if webview is not None:
-            win = webview.create_window(
+            window = win = webview.create_window(
                 "House Edge", url, width=1120, height=780, min_size=(380, 520),
                 on_top=bool(core.settings.get("onTop", True)), background_color="#06201a",
             )

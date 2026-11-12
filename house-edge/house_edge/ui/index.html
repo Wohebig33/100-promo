@@ -153,6 +153,11 @@ h2.h { font-family: var(--f-display); font-weight: 400; font-size: 22px; color: 
 .row .rl b { font-weight: 500; font-size: 15px; }
 .row .rl small { color: var(--muted); }
 .row .ctl { display: flex; gap: 8px; align-items: center; }
+.steam { flex-direction: column; align-items: stretch; }
+.steam ol { margin: 4px 0 0; padding-left: 18px; color: var(--muted); font-size: 13px; line-height: 1.7; }
+.steam ol b { color: var(--cream); }
+.cmd { display: flex; gap: 8px; align-items: center; }
+.cmd code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; padding: 10px 12px; border-radius: 10px; background: rgba(0,0,0,.45); border: 1px dashed var(--line); font: 12px var(--f-mono); color: var(--gold-2); user-select: all; -webkit-user-select: all; }
 .note { max-width: 760px; margin-top: 16px; padding: 16px 18px; color: var(--muted); font-size: 13px; }
 .note b { color: var(--cream); }
 
@@ -239,7 +244,7 @@ details.adv[open] summary { margin-bottom: 10px; }
           <li>Pick it from the list below. House Edge remembers it and joins automatically next time.</li>
           <li>Use the <b>Value finder</b> to turn any number on screen into a mod.</li>
         </ol>
-        <button class="btn primary" id="pick-btn">Pick the game</button>
+        <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn primary" id="pick-btn">Pick the game</button><button class="btn" data-goto="settings">Start it from Steam instead</button></div>
       </div>
       <div class="cards" aria-hidden="true"><span>&#9829;</span><span>&#9824;</span><span>&#9830;</span></div>
     </div>
@@ -309,6 +314,16 @@ details.adv[open] summary { margin-bottom: 10px; }
   <section id="tab-settings" hidden>
     <div class="panel rows">
       <div class="row"><span class="rl"><b>Join automatically</b><small id="s-auto-txt">Pick a game once and House Edge joins it whenever it starts.</small></span><span class="ctl"><button class="btn sm" id="s-forget">Forget game</button></span></div>
+      <div class="row steam">
+        <span class="rl"><b>Start with the game from Steam</b><small>House Edge starts the game, joins it, and closes when you quit. One click in Steam does it all.</small></span>
+        <div class="cmd"><code id="s-launch"></code><button class="btn sm" id="s-copy">Copy</button></div>
+        <ol>
+          <li>In your Steam <b>Library</b>, right-click the game and choose <b>Properties</b>.</li>
+          <li>Under <b>General</b>, paste the line above into <b>Launch Options</b>.</li>
+          <li>Press <b>Play</b> as usual.</li>
+        </ol>
+      </div>
+      <div class="row"><span class="rl"><b>Show or hide the panel</b><small>Press it in the game to pop the panel up. Use windowed or borderless fullscreen.</small></span><input class="in hk" id="s-panel-hk" readonly style="width:170px" aria-label="Show or hide panel hotkey"></div>
       <div class="row"><span class="rl"><b>Keep the panel on top of the game</b><small>Works in windowed and borderless modes</small></span><button class="switch" role="switch" data-set="onTop"></button></div>
       <div class="row"><span class="rl"><b>Hotkeys</b><small id="s-hk-txt">Toggle a mod's lock from inside the game</small></span><button class="switch" role="switch" data-set="hotkeys"></button></div>
       <div class="row"><span class="rl"><b>Sounds</b><small>Chip clinks when things happen</small></span><button class="switch" role="switch" data-set="sounds"></button></div>
@@ -408,7 +423,7 @@ const sfx = {
 function toast(text, kind = 'ok') {
   const el = document.createElement('div');
   el.className = 'toast ' + kind;
-  const icon = { ok: '&#10003;', error: '!', party: '&#9733;', attach: '&#9824;', detach: '&#8211;', hotkey: '&#9000;' }[kind] || '&#10003;';
+  const icon = { ok: '&#10003;', error: '!', party: '&#9733;', attach: '&#9824;', detach: '&#8211;', hotkey: '&#9000;', launch: '&#9654;' }[kind] || '&#10003;';
   el.innerHTML = `<i>${icon}</i><span>${esc(text)}</span>`;
   $('#toasts').append(el);
   setTimeout(() => el.remove(), 4100);
@@ -593,9 +608,7 @@ function openEditor(mod, address) {
 }
 $('#add-btn').addEventListener('click', () => openEditor());
 $('#e-party').addEventListener('click', e => e.currentTarget.setAttribute('aria-checked', String(e.currentTarget.getAttribute('aria-checked') !== 'true')));
-$('#e-hk').addEventListener('keydown', e => {
-  e.preventDefault();
-  if (['Escape', 'Backspace', 'Delete'].includes(e.key)) { e.target.value = ''; return; }
+function comboFrom(e) {
   let key = null;
   if (/^F([1-9]|1[0-2])$/.test(e.key)) key = e.key;
   else if (/^Numpad\d$/.test(e.code)) key = 'Num' + e.code.slice(6);
@@ -603,9 +616,27 @@ $('#e-hk').addEventListener('keydown', e => {
   else if (/^Key[A-Z]$/.test(e.code)) key = e.code.slice(3);
   if (!key) return;
   const mods = [e.ctrlKey && 'Ctrl', e.shiftKey && 'Shift', e.altKey && 'Alt'].filter(Boolean);
-  if (!mods.length && /^[A-Z0-9]$/.test(key)) { toast('Plain letters and numbers would fire while you type in the game. Add Ctrl, Shift or Alt, or use F1 to F12 or the number pad.', 'error'); return; }
-  e.target.value = [...mods, key].join('+');
+  if (!mods.length && /^[A-Z0-9]$/.test(key)) { toast('Plain letters and numbers would fire while you type in the game. Add Ctrl, Shift or Alt, or use F1 to F12 or the number pad.', 'error'); return null; }
+  return [...mods, key].join('+');
+}
+$('#e-hk').addEventListener('keydown', e => {
+  e.preventDefault();
+  if (['Escape', 'Backspace', 'Delete'].includes(e.key)) { e.target.value = ''; return; }
+  const c = comboFrom(e); if (c) e.target.value = c;
 });
+$('#s-panel-hk').addEventListener('keydown', run(async e => {
+  e.preventDefault();
+  const c = ['Backspace', 'Delete'].includes(e.key) ? '' : comboFrom(e);
+  if (c === null) return;
+  await api('/api/settings', { panelHotkey: c }); S.settings.panelHotkey = c; e.target.value = c; e.target.blur(); sfx.clink();
+  toast(c ? `Press ${c} in the game to show or hide the panel.` : 'Panel hotkey turned off.');
+}));
+$('#s-copy').addEventListener('click', run(async () => {
+  const t = $('#s-launch').textContent;
+  try { await navigator.clipboard.writeText(t); }
+  catch { const r = document.createRange(); r.selectNodeContents($('#s-launch')); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); document.execCommand('copy'); }
+  sfx.clink(); toast('Copied. Paste it into the game\u2019s Steam Launch Options.');
+}));
 const hex = s => { const v = String(s).trim().replace(/^0x/i, ''); if (!/^[0-9a-f]+$/i.test(v)) throw new Error(`"${s}" isn’t a hex number.`); return parseInt(v, 16); };
 $('#e-save').addEventListener('click', run(async () => {
   const body = {
@@ -647,7 +678,7 @@ $('#ct-file').addEventListener('change', run(async e => {
 /* ---------- modals ---------- */
 function closeModals() { $$('.modal').forEach(m => m.hidden = true); }
 document.addEventListener('click', e => { if (e.target.closest('[data-close]') || e.target.classList.contains('modal')) closeModals(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.activeElement?.id !== 'e-hk') closeModals(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !document.activeElement?.classList.contains('hk')) closeModals(); });
 
 /* ---------- value finder ---------- */
 const FIRST_MODES = [['exact', 'Exact value'], ['unknown', 'Unknown starting value']];
@@ -724,6 +755,10 @@ function renderSettings() {
   const hk = $('[data-set="hotkeys"]'); hk.disabled = !S.hotkeysSupported;
   $('#s-hk-txt').textContent = S.hotkeysSupported ? 'Toggle a mod’s lock from inside the game' : 'Hotkeys only work on Windows. The buttons here still work.';
   if (document.activeElement !== $('#s-party')) $('#s-party').value = String(st.partyEvery || 20);
+  if ($('#s-launch').textContent !== (S.launchOption || '')) $('#s-launch').textContent = S.launchOption || '';
+  const ph = $('#s-panel-hk');
+  if (document.activeElement !== ph) { ph.value = st.panelHotkey || ''; ph.placeholder = 'Click, then press keys'; }
+  ph.disabled = !S.hotkeysSupported;
 }
 $$('[data-set]').forEach(b => b.addEventListener('click', run(async () => {
   const k = b.dataset.set, v = b.getAttribute('aria-checked') !== 'true';
