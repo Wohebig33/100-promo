@@ -3,7 +3,7 @@
 Windows: polls GetAsyncKeyState about 30 times a second. That needs no window or message loop, and it
 doesn't steal the key from the game. Other platforms: hotkeys are off and the panel buttons still work.
 
-Combos look like "F1", "Ctrl+F2", "Shift+Num5" or "Alt+K".
+Combos look like "F1", "Ctrl+F2", "Shift+Num5", "Alt+K", or two keys held together like "Q+E".
 """
 from __future__ import annotations
 
@@ -21,25 +21,28 @@ MOD_VK = {"Ctrl": 0x11, "Shift": 0x10, "Alt": 0x12}
 
 
 def parse(combo: str):
-    """'Ctrl+F1' -> (frozenset({'Ctrl'}), 0x70). Returns None for anything unsupported."""
+    """'Ctrl+F1' -> (frozenset({'Ctrl'}), (0x70,)); 'Q+E' -> (frozenset(), (0x51, 0x45)).
+
+    Ctrl, Shift and Alt can go with one or two other keys. Returns None for anything unsupported.
+    """
     if not combo:
         return None
     parts = [p.strip() for p in combo.split("+") if p.strip()]
-    if not parts:
-        return None
-    key = parts[-1]
-    key = key.upper() if len(key) == 1 else key[0].upper() + key[1:]
-    mods = set()
-    for p in parts[:-1]:
-        p = p.capitalize()
-        if p == "Control":
-            p = "Ctrl"
-        if p not in MOD_VK:
+    mods, keys = set(), []
+    for p in parts:
+        cap = p.capitalize()
+        if cap == "Control":
+            cap = "Ctrl"
+        if cap in MOD_VK:
+            mods.add(cap)
+            continue
+        key = p.upper() if len(p) == 1 else p[0].upper() + p[1:]
+        if key not in VK or VK[key] in keys:
             return None
-        mods.add(p)
-    if key not in VK:
+        keys.append(VK[key])
+    if not 1 <= len(keys) <= 2:
         return None
-    return frozenset(mods), VK[key]
+    return frozenset(mods), tuple(keys)
 
 
 class HotkeyThread(threading.Thread):
@@ -71,8 +74,8 @@ class HotkeyThread(threading.Thread):
                     parsed = parse(combo)
                     if not parsed:
                         continue
-                    need, vk = parsed
-                    active = pressed(vk) and held_mods == set(need)
+                    need, vks = parsed
+                    active = all(pressed(vk) for vk in vks) and held_mods == set(need)
                     if active and combo not in self.down:
                         self.down.add(combo)
                         self.on_fire(target)

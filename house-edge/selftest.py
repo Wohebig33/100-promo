@@ -198,8 +198,12 @@ def main():
         while core2.proc is None and time.time() - t0 < 15:
             time.sleep(0.1)
         check("game started by House Edge is joined", core2.proc is not None and core2.proc.pid == core2.launched.pid)
+        core2.settings["autoAttach"] = "no-such-game.exe"  # joining saved the name "python"; don't wait for other Pythons
         check("House Edge quits after the game it started closes", exited.wait(30))
-        check("panel show/hide hotkey bound", core2._bindings().get("Ctrl+Shift+H") == "__panel__")
+        check("panel show/hide hotkey is Q+E", core2._bindings().get("Q+E") == "__panel__")
+        from house_edge import hotkeys
+        check("two-key chords parse", hotkeys.parse("Q+E") == (frozenset(), (0x51, 0x45)) and hotkeys.parse("ctrl+f1") == (frozenset({"Ctrl"}), (0x70,)))
+        check("bad hotkeys rejected", hotkeys.parse("Q+Q") is None and hotkeys.parse("Ctrl") is None and hotkeys.parse("A+B+C") is None)
         check("Steam launch option ends with %command%", core2.launch_option().endswith("%command%"))
         check("own process not listed", all(p.pid != os.getpid() for p in list_processes()))
     finally:

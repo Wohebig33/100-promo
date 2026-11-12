@@ -323,7 +323,7 @@ details.adv[open] summary { margin-bottom: 10px; }
           <li>Press <b>Play</b> as usual.</li>
         </ol>
       </div>
-      <div class="row"><span class="rl"><b>Show or hide the panel</b><small>Press it in the game to pop the panel up. Use windowed or borderless fullscreen.</small></span><input class="in hk" id="s-panel-hk" readonly style="width:170px" aria-label="Show or hide panel hotkey"></div>
+      <div class="row"><span class="rl"><b>Show or hide the panel</b><small>Hold the keys together in the game to pop the panel up. Use windowed or borderless fullscreen.</small></span><input class="in hk" id="s-panel-hk" readonly style="width:170px" aria-label="Show or hide panel hotkey"></div>
       <div class="row"><span class="rl"><b>Keep the panel on top of the game</b><small>Works in windowed and borderless modes</small></span><button class="switch" role="switch" data-set="onTop"></button></div>
       <div class="row"><span class="rl"><b>Hotkeys</b><small id="s-hk-txt">Toggle a mod's lock from inside the game</small></span><button class="switch" role="switch" data-set="hotkeys"></button></div>
       <div class="row"><span class="rl"><b>Sounds</b><small>Chip clinks when things happen</small></span><button class="switch" role="switch" data-set="sounds"></button></div>
@@ -593,7 +593,7 @@ function openEditor(mod, address) {
   $('#ed-t').textContent = mod ? 'Edit mod' : 'New mod';
   $('#e-name').value = m.name || '';
   $('#e-cat').value = m.category || 'Mods';
-  $('#e-hk').value = m.hotkey || '';
+  $('#e-hk').value = $('#e-hk').dataset.saved = m.hotkey || '';
   $('#e-presets').value = (m.presets || (isFloat(t) ? ['+10', 'x2', '999'] : ['+100', 'x2', '9999'])).join(', ');
   $('#e-party').setAttribute('aria-checked', String(m.party ?? true));
   $('#e-type').value = t;
@@ -608,27 +608,41 @@ function openEditor(mod, address) {
 }
 $('#add-btn').addEventListener('click', () => openEditor());
 $('#e-party').addEventListener('click', e => e.currentTarget.setAttribute('aria-checked', String(e.currentTarget.getAttribute('aria-checked') !== 'true')));
-function comboFrom(e) {
-  let key = null;
-  if (/^F([1-9]|1[0-2])$/.test(e.key)) key = e.key;
-  else if (/^Numpad\d$/.test(e.code)) key = 'Num' + e.code.slice(6);
-  else if (/^Digit\d$/.test(e.code)) key = e.code.slice(5);
-  else if (/^Key[A-Z]$/.test(e.code)) key = e.code.slice(3);
-  if (!key) return;
-  const mods = [e.ctrlKey && 'Ctrl', e.shiftKey && 'Shift', e.altKey && 'Alt'].filter(Boolean);
-  if (!mods.length && /^[A-Z0-9]$/.test(key)) { toast('Plain letters and numbers would fire while you type in the game. Add Ctrl, Shift or Alt, or use F1 to F12 or the number pad.', 'error'); return null; }
-  return [...mods, key].join('+');
+const keyName = e => /^F([1-9]|1[0-2])$/.test(e.key) ? e.key
+  : /^Numpad\d$/.test(e.code) ? 'Num' + e.code.slice(6)
+  : /^Digit\d$/.test(e.code) ? e.code.slice(5)
+  : /^Key[A-Z]$/.test(e.code) ? e.code.slice(3) : null;
+/* Hotkey picker: press one key, or hold two together (like Q+E), with Ctrl/Shift/Alt if you like.
+   The combo is saved when you let go of everything. Backspace or Delete clears it. */
+function hotkeyCapture(input, onDone) {
+  let held = [], best = null, mods = [];
+  input.addEventListener('keydown', e => {
+    e.preventDefault();
+    if (e.repeat) return;
+    if (['Backspace', 'Delete'].includes(e.key) && !held.length) { held = []; best = null; input.value = ''; onDone(''); return; }
+    if (e.key === 'Escape') { held = []; best = null; input.blur(); return; }
+    const k = keyName(e);
+    mods = [e.ctrlKey && 'Ctrl', e.shiftKey && 'Shift', e.altKey && 'Alt'].filter(Boolean);
+    if (k && !held.includes(k) && held.length < 2) held.push(k);
+    if (held.length) { best = [...mods, ...held].join('+'); input.value = best; }
+  });
+  input.addEventListener('keyup', e => {
+    const k = keyName(e);
+    held = held.filter(x => x !== k);
+    if (held.length || !best) return;
+    const c = best; best = null;
+    if (!/[+]/.test(c) && /^[A-Z0-9]$/.test(c)) {
+      toast('One plain letter or number would fire every time you press it in the game. Hold two together (like Q+E), add Ctrl, Shift or Alt, or use F1 to F12.', 'error'); sfx.err();
+      input.value = input.dataset.saved || ''; return;
+    }
+    onDone(c);
+  });
+  input.addEventListener('blur', () => { held = []; best = null; });
 }
-$('#e-hk').addEventListener('keydown', e => {
-  e.preventDefault();
-  if (['Escape', 'Backspace', 'Delete'].includes(e.key)) { e.target.value = ''; return; }
-  const c = comboFrom(e); if (c) e.target.value = c;
-});
-$('#s-panel-hk').addEventListener('keydown', run(async e => {
-  e.preventDefault();
-  const c = ['Backspace', 'Delete'].includes(e.key) ? '' : comboFrom(e);
-  if (c === null) return;
-  await api('/api/settings', { panelHotkey: c }); S.settings.panelHotkey = c; e.target.value = c; e.target.blur(); sfx.clink();
+hotkeyCapture($('#e-hk'), c => { $('#e-hk').value = c; $('#e-hk').dataset.saved = c; });
+hotkeyCapture($('#s-panel-hk'), run(async c => {
+  const ph = $('#s-panel-hk');
+  await api('/api/settings', { panelHotkey: c }); S.settings.panelHotkey = c; ph.value = c; ph.dataset.saved = c; ph.blur(); sfx.clink();
   toast(c ? `Press ${c} in the game to show or hide the panel.` : 'Panel hotkey turned off.');
 }));
 $('#s-copy').addEventListener('click', run(async () => {
@@ -757,7 +771,7 @@ function renderSettings() {
   if (document.activeElement !== $('#s-party')) $('#s-party').value = String(st.partyEvery || 20);
   if ($('#s-launch').textContent !== (S.launchOption || '')) $('#s-launch').textContent = S.launchOption || '';
   const ph = $('#s-panel-hk');
-  if (document.activeElement !== ph) { ph.value = st.panelHotkey || ''; ph.placeholder = 'Click, then press keys'; }
+  if (document.activeElement !== ph) { ph.value = ph.dataset.saved = st.panelHotkey || ''; ph.placeholder = 'Click, then press keys'; }
   ph.disabled = !S.hotkeysSupported;
 }
 $$('[data-set]').forEach(b => b.addEventListener('click', run(async () => {

@@ -33,7 +33,7 @@ Add `--browser` to open the panel in your browser instead of its own window.
 
 House Edge then opens with the game and joins it right away, and it closes when you quit the game. Steam still counts it as playing the game. If you move `HouseEdge.exe` somewhere else later, copy the line again.
 
-**Bring the panel up in the game:** press **Ctrl+Shift+H** to show or hide it. You can change the key in Settings. Set the game to **windowed** or **borderless fullscreen** in its video settings. In exclusive fullscreen, Windows won't draw another window on top of the game, but mod hotkeys still work there.
+**Bring the panel up in the game:** hold **Q and E together** to show or hide it. The game still gets Q and E too, so if those keys do something in the game, pick a different combo in Settings. Set the game to **windowed** or **borderless fullscreen** in its video settings. In exclusive fullscreen, Windows won't draw another window on top of the game, but mod hotkeys still work there.
 
 To undo it, clear the Launch Options box in Steam.
 
@@ -50,7 +50,7 @@ To undo it, clear the Launch Options box in Steam.
    - **Lock:** freezes the value. Infinite chips.
    - **Quick buttons:** `+100` adds, `x2` doubles, `9999` sets.
    - **Set to…:** type any value.
-   - **Hotkeys** (F1 to F12, Num0 to Num9, or Ctrl/Shift/Alt plus a key) toggle the lock from inside the game.
+   - **Hotkeys** (F1 to F12, Num0 to Num9, Ctrl/Shift/Alt plus a key, or two keys together like Q+E) toggle the lock from inside the game.
    - **Party Mode:** every 20 seconds it presses a random quick button on a random mod. Good chaos for local co-op.
    - **Compact overlay** (the ⇲ button) shrinks the panel to just the mods. With "Keep the panel on top" it sits over the game in windowed or borderless mode.
 

@@ -21,7 +21,7 @@ DEFAULT_SETTINGS = {
     "sounds": True,
     "hotkeys": True,
     "partyEvery": 20,      # seconds between Party Mode surprises
-    "panelHotkey": "Ctrl+Shift+H",  # show or hide the panel over the game
+    "panelHotkey": "Q+E",  # hold Q and E together to show or hide the panel over the game
 }
 PANEL = "__panel__"
 
@@ -31,6 +31,8 @@ class Core:
         self.lock = threading.RLock()
         self.dir = M.data_dir()
         self.settings = {**DEFAULT_SETTINGS, **M.load_json(os.path.join(self.dir, "settings.json"), {})}
+        if self.settings.get("panelHotkey") == "Ctrl+Shift+H":  # the old default
+            self.settings["panelHotkey"] = DEFAULT_SETTINGS["panelHotkey"]
         self.proc: Process | None = None
         self.game = ""
         self.modules = []
@@ -240,7 +242,7 @@ class Core:
             if m.get("hotkey") and not hotkeys.parse(m["hotkey"]):
                 bad = m["hotkey"]
                 m["hotkey"] = None
-                raise ValueError(f'"{bad}" isn’t a hotkey House Edge knows. Try F1 to F12, Num0 to Num9, or Ctrl/Shift/Alt plus a key.')
+                raise ValueError(f'"{bad}" isn’t a hotkey House Edge knows. Try F1 to F12, Num0 to Num9, Ctrl/Shift/Alt plus a key, or two keys together like Q+E.')
             m.update(M.normalize(m))
             self.save()
 
