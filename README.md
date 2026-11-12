@@ -33,4 +33,4 @@ There's a playable main menu for **We're All In** in [`were-all-in/`](were-all-i
 
 # House Edge: mod panel
 
-[`house-edge/`](house-edge/README.md) is a trainer for single-player games, made for We're All In. It runs outside the game, joins it automatically and lets you lock or change values like chips and health. It has a built-in value finder, hotkeys, Cheat Engine table import and Party Mode. Download the Windows build from the Actions tab.
+[`house-edge/`](house-edge/README.md) is a trainer for single-player games, made for We're All In. It has an in-game mod menu you drop into the game folder (BepInEx, opens with Q+E) and a desktop panel. It runs outside the game, joins it automatically and lets you lock or change values like chips and health. It has a built-in value finder, hotkeys, Cheat Engine table import and Party Mode. Download the Windows build from the Actions tab.

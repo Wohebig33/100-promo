@@ -4,7 +4,36 @@ A mod panel (a "trainer") for single-player games, made for **We're All In**. It
 
 > **Single-player and local play only.** Don't use it online against other people or in games with anti-cheat. It spoils the game for others and can get your Steam account banned.
 
-## Get it
+## Two ways to use it
+
+| | **In-game menu** (`ingame/`) | **Desktop panel** (`HouseEdge.exe`) |
+|---|---|---|
+| Where the menu shows | Inside the game, over the action | Its own window next to the game |
+| Install | Unzip into the game folder | Run the .exe |
+| Finds values by | Name, read from the game's code: "chips", "health" | Memory scanning: type the number you see |
+| Extras | Game speed, gravity, field of view, Party Mode | Hotkeys, Cheat Engine tables, Party Mode |
+| Games | Unity games built with Mono, like We're All In | Any single-player game |
+
+## In-game menu (We're All In)
+
+We're All In is a Unity game built with Mono: it ships `UnityPlayer.dll` and a `MonoBleedingEdge` folder. So the menu can live inside the game through [BepInEx](https://github.com/BepInEx/BepInEx), the standard Unity mod loader.
+
+1. Open this repo's **Actions** tab, then **House Edge (Windows build)**. Pick the latest green run and download **HouseEdge-InGame-drop-into-game-folder**.
+2. In Steam, right-click the game and choose **Manage → Browse local files**.
+3. Unzip everything into that folder, next to `WereAllIn.exe`: `winhttp.dll`, `doorstop_config.ini` and the `BepInEx` folder.
+4. Play from Steam and hold **Q+E**.
+
+The full steps are in [`ingame/INSTALL.txt`](ingame/INSTALL.txt), which also comes inside the zip. To uninstall, delete those three items.
+
+What's in the menu:
+- **Fun:** game speed from 0.1x to 5x, gravity (float, moon, heavy, upside down), field of view, an FPS counter, and pause while the menu is open.
+- **Find values:** search the game's own code by name, or tap a quick word (chips, money, health, lives…). Set a result, double it, or add to it, then **Pin** the one that works.
+- **Pinned:** lock a value. **All** applies it to every copy, so you can freeze every enemy. Pins reconnect by themselves after a scene change or a restart.
+- **Party Mode:** every 20 seconds there's a random surprise, like turbo, slow-mo, moon gravity, fish-eye, or a jackpot on a pinned value.
+
+Building it yourself: `ingame/` is a .NET project (`net46`) that compiles against BepInEx 5 and Unity's reference assemblies. CI builds it against the real BepInEx and packages the folder. To build without a BepInEx download, compile the stand-in first: `dotnet build ingame/stubs/BepInEx.Stub.csproj`, then `dotnet build ingame/HouseEdgeInGame.csproj`.
+
+## Get the desktop panel
 
 **Download (Windows):** open this repo's **Actions** tab, then **House Edge (Windows build)**. Pick the latest green run and download **HouseEdge-windows**. Unzip it and run `HouseEdge.exe`.
 

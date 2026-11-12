@@ -1,5 +1,9 @@
 name: House Edge (Windows build)
 
+# Two jobs:
+#   windows  - the desktop panel, HouseEdge.exe
+#   ingame   - the in-game mod menu (BepInEx plugin), packaged as a folder to drop into the game folder
+
 on:
   push:
     paths:
@@ -46,4 +50,50 @@ jobs:
         with:
           name: HouseEdge-windows
           path: house-edge/dist/HouseEdge.exe
+          if-no-files-found: error
+
+  ingame:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: house-edge/ingame
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Download BepInEx 5 (Windows, 64-bit)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          url=$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" "https://api.github.com/repos/BepInEx/BepInEx/releases?per_page=40" \
+            | jq -r '[.[] | select(.prerelease | not) | select(.tag_name | startswith("v5.4"))][0].assets[]
+                     | select(.name | test("(win_x64|_x64_).*\\.zip$")) | select(.name | test("unix|linux|macos"; "i") | not)
+                     | .browser_download_url' | head -1)
+          test -n "$url"
+          echo "Using $url"
+          curl -fsSL -o bepinex.zip "$url"
+          mkdir -p package
+          unzip -o -q bepinex.zip -d package
+          test -f package/BepInEx/core/BepInEx.dll
+          test -f package/winhttp.dll
+
+      - name: Build the plugin against the real BepInEx
+        run: dotnet build HouseEdgeInGame.csproj -c Release -p:BepInExDir=$PWD/package/BepInEx/core
+
+      - name: Assemble the drop-in folder
+        run: |
+          mkdir -p package/BepInEx/plugins/HouseEdgeInGame
+          cp bin/HouseEdgeInGame.dll package/BepInEx/plugins/HouseEdgeInGame/
+          cp -r extras/BepInEx/. package/BepInEx/
+          cp INSTALL.txt "package/HOUSE EDGE - READ ME.txt"
+          find package -maxdepth 3 | sort
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HouseEdge-InGame-drop-into-game-folder
+          path: house-edge/ingame/package/
+          include-hidden-files: true
           if-no-files-found: error
