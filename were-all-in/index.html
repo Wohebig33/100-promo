@@ -1,0 +1,946 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>We're All In</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Rubik:wght@400;500;700&display=swap">
+<style>
+/* Main menu for We're All In. A single dark look on purpose, because it's a game title screen: green card-table felt, gold chips, cream playing cards. */
+:root {
+  color-scheme: dark;
+  --felt: #0d3b2e;
+  --felt-deep: #06201a;
+  --gold: #f5c542;
+  --gold-2: #ffdf7e;
+  --gold-dark: #6b4a05;
+  --cream: #f7efe1;
+  --muted: #9fb8ad;
+  --line: rgba(245, 197, 66, .28);
+  --panel: rgba(4, 22, 16, .78);
+  --red: #d7263d;
+  --f-display: "Bungee", Impact, "Arial Black", sans-serif;
+  --f-body: "Rubik", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--felt-deep); color: var(--cream); font-family: var(--f-body); font-size: 15px; overflow: hidden; -webkit-font-smoothing: antialiased; user-select: none; -webkit-user-select: none; }
+button { font: inherit; color: inherit; }
+:focus { outline: none; }
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+
+#bg { position: fixed; inset: 0; width: 100%; height: 100%; display: block; background: radial-gradient(ellipse at 50% 38%, #17604a 0%, var(--felt) 42%, var(--felt-deep) 100%); }
+.vignette { position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,.65) 100%); }
+
+#app { position: fixed; inset: 0; }
+#app.shake { animation: shake .42s cubic-bezier(.36,.07,.19,.97); }
+@keyframes shake { 10%,90% { transform: translate(-2px,1px) } 20%,80% { transform: translate(4px,-2px) } 30%,50%,70% { transform: translate(-7px,3px) } 40%,60% { transform: translate(7px,-3px) } }
+
+.screen { position: absolute; inset: 0; display: none; flex-direction: column; padding: clamp(16px, 4vw, 56px); padding-bottom: 76px; overflow-y: auto; overflow-x: hidden; }
+.screen.active { display: flex; animation: enter .45s cubic-bezier(.2,.8,.2,1); }
+@keyframes enter { from { opacity: 0; transform: translateY(14px) } to { opacity: 1; transform: none } }
+.inner { width: 100%; max-width: 1000px; margin: 0 auto; }
+
+/* ---------- Logo ---------- */
+.logo { margin: 0; font-family: var(--f-display); font-weight: 400; line-height: .9; display: flex; flex-direction: column; align-items: flex-start; }
+.logo .l1 { font-size: clamp(18px, 2.6vw, 32px); letter-spacing: .32em; color: var(--cream); text-shadow: 0 3px 0 rgba(0,0,0,.4); margin-left: .1em; }
+.logo .l2 { display: flex; align-items: center; gap: .1em; font-size: clamp(54px, 9vw, 120px); white-space: nowrap; }
+.logo .word { background: linear-gradient(180deg, var(--gold-2) 0%, var(--gold) 55%, #c98d12 100%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 5px 0 var(--gold-dark)) drop-shadow(0 14px 22px rgba(0,0,0,.55)); }
+.logo .chip { width: .78em; height: .78em; color: #d7263d; cursor: pointer; animation: spin 7s linear infinite; filter: drop-shadow(0 6px 10px rgba(0,0,0,.5)); }
+.logo .chip.fast { animation-duration: .35s; }
+@keyframes spin { to { transform: rotate(360deg) } }
+.title-screen { align-items: center; justify-content: center; text-align: center; cursor: pointer; }
+.title-screen .logo { align-items: center; }
+.title-screen .logo .l2 { font-size: clamp(60px, 14vw, 184px); }
+.press { margin-top: clamp(32px, 7vh, 64px); font-family: var(--f-display); letter-spacing: .28em; color: var(--gold-2); font-size: clamp(14px, 1.8vw, 20px); animation: blink 1.5s ease-in-out infinite; }
+@keyframes blink { 50% { opacity: .25 } }
+.tagline { margin-top: 14px; color: var(--muted); letter-spacing: .14em; text-transform: uppercase; font-size: 12px; }
+
+/* ---------- Main menu ---------- */
+.main-screen { justify-content: center; }
+.main-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 380px); gap: 48px; width: 100%; max-width: 1180px; margin: auto; align-items: center; }
+.menu { display: flex; flex-direction: column; gap: 4px; margin-top: clamp(24px, 5vh, 44px); }
+.item { all: unset; box-sizing: border-box; cursor: pointer; position: relative; display: grid; grid-template-columns: 38px auto; column-gap: 12px; align-items: center; padding: 8px 20px 8px 6px; border-radius: 14px; width: min(460px, 100%); transition: transform .2s cubic-bezier(.3,1.4,.5,1), background .2s; }
+.item .pip { grid-row: 1 / 3; width: 32px; height: 32px; transform: scale(0) rotate(-200deg); transition: transform .32s cubic-bezier(.3,1.6,.5,1); }
+.item .lbl { font-family: var(--f-display); font-size: clamp(26px, 3.3vw, 40px); line-height: 1.1; color: var(--cream); transition: color .2s; }
+.item small { grid-column: 2; color: var(--muted); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; max-height: 0; opacity: 0; overflow: hidden; transition: max-height .2s, opacity .2s; }
+.item:is(:hover, :focus) { background: linear-gradient(90deg, rgba(245,197,66,.18), rgba(245,197,66,0) 85%); transform: translateX(12px); }
+.item:is(:hover, :focus) .pip { transform: scale(1) rotate(0); }
+.item:is(:hover, :focus) .lbl { color: var(--gold-2); }
+.item:is(:hover, :focus) small { max-height: 20px; opacity: 1; }
+.item.quit .lbl { font-size: clamp(20px, 2.4vw, 28px); opacity: .8; }
+
+.right { display: flex; flex-direction: column; align-items: center; gap: 26px; perspective: 1100px; }
+.hero-card { width: min(270px, 26vw); aspect-ratio: 5 / 7; border-radius: 18px; background: linear-gradient(160deg, #fffaf0, var(--cream)); color: #111; position: relative; transform: rotate(-5deg); box-shadow: 0 34px 60px rgba(0,0,0,.55), 0 0 0 6px rgba(255,255,255,.05), inset 0 0 0 8px #fff, inset 0 0 0 9px rgba(0,0,0,.08); }
+.hero-card.flip { animation: flip .36s ease-in-out; }
+@keyframes flip { 0% { transform: rotate(-5deg) rotateY(0) } 50% { transform: rotate(-5deg) rotateY(90deg) scale(.96) } 100% { transform: rotate(-5deg) rotateY(0) } }
+.hero-card .corner { position: absolute; font-family: var(--f-display); font-size: 30px; line-height: .95; text-align: center; }
+.hero-card .corner i { display: block; font-style: normal; font-size: 26px; }
+.hero-card .tl { top: 18px; left: 20px; }
+.hero-card .br { bottom: 18px; right: 20px; transform: rotate(180deg); }
+.hero-card .mid { position: absolute; inset: 0; display: grid; place-items: center; font-size: clamp(80px, 9vw, 128px); line-height: 1; }
+.hero-card .mid .joker { font-family: var(--f-display); font-size: clamp(30px, 3.2vw, 44px); letter-spacing: .06em; transform: rotate(-14deg); background: linear-gradient(90deg, #7b3fe4, #d7263d, #f5a623); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.blurb { margin: 0; font-size: 17px; color: var(--muted); text-align: center; max-width: 300px; min-height: 2.8em; }
+
+/* Suit colours. The four-colour deck setting gives each suit its own colour. */
+.s-s { color: #111; } .s-c { color: #111; } .s-h { color: var(--red); } .s-d { color: var(--red); } .s-j { color: #7b3fe4; }
+.fourc .s-c { color: #12813a; } .fourc .s-d { color: #1f62d1; }
+
+/* ---------- Shared bits ---------- */
+.sh { display: flex; align-items: center; gap: 18px; margin-bottom: 26px; flex-wrap: wrap; }
+.sh h2 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: clamp(28px, 4vw, 46px); color: var(--gold-2); text-shadow: 0 4px 0 rgba(0,0,0,.35); }
+.sh .grow { flex: 1; }
+.btn { appearance: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 999px; border: 2px solid var(--line); background: rgba(0,0,0,.3); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; font-size: 13px; transition: border-color .15s, background .15s, transform .15s; }
+.btn:is(:hover, :focus) { border-color: var(--gold); background: rgba(245,197,66,.14); transform: translateY(-1px); }
+.btn.primary { background: linear-gradient(180deg, var(--gold-2), var(--gold)); color: #2b1d00; border-color: var(--gold); }
+.btn.primary:is(:hover, :focus) { background: linear-gradient(180deg, #fff0b8, var(--gold-2)); }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+
+/* ---------- Play ---------- */
+.modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+.mode { appearance: none; cursor: pointer; text-align: left; display: flex; flex-direction: column; gap: 8px; padding: 22px; min-height: 200px; border-radius: 20px; border: 2px solid var(--line); background: var(--panel); transition: transform .2s cubic-bezier(.3,1.4,.5,1), border-color .2s, box-shadow .2s; }
+.mode:is(:hover, :focus) { transform: translateY(-6px) rotate(-.6deg); border-color: var(--gold); box-shadow: 0 18px 40px rgba(0,0,0,.45), 0 0 0 4px rgba(245,197,66,.12); }
+.mode .m-ic { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; font-size: 28px; background: var(--cream); margin-bottom: 6px; box-shadow: 0 0 0 4px rgba(255,255,255,.12); }
+.mode b { font-family: var(--f-display); font-weight: 400; font-size: 22px; color: var(--gold-2); }
+.mode span.d { color: var(--cream); opacity: .85; line-height: 1.4; }
+.mode em { margin-top: auto; font-style: normal; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+
+/* ---------- Settings ---------- */
+.tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.tab { appearance: none; cursor: pointer; padding: 10px 20px; border-radius: 999px; border: 2px solid transparent; background: rgba(0,0,0,.25); font-family: var(--f-display); font-size: 15px; letter-spacing: .04em; color: var(--muted); }
+.tab:is(:hover, :focus) { border-color: var(--line); color: var(--cream); }
+.tab[aria-selected="true"] { background: var(--gold); color: #2b1d00; }
+.rows { padding: 8px; display: flex; flex-direction: column; }
+.row { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 14px 16px; border-radius: 14px; min-height: 64px; }
+.row:focus-within { background: rgba(245,197,66,.09); }
+.row .rl { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.row .rl b { font-weight: 500; font-size: 16px; }
+.row .rl small { color: var(--muted); font-size: 12px; }
+.ctl { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.ctl output { font: 700 13px/1 var(--f-body); width: 3ch; text-align: right; color: var(--gold-2); font-variant-numeric: tabular-nums; }
+input[type=range] { width: min(240px, 38vw); accent-color: var(--gold); cursor: pointer; }
+.switch { appearance: none; cursor: pointer; width: 58px; height: 32px; border-radius: 999px; border: 2px solid var(--line); background: rgba(0,0,0,.4); position: relative; transition: background .2s, border-color .2s; flex-shrink: 0; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: var(--muted); transition: transform .22s cubic-bezier(.3,1.5,.5,1), background .2s; }
+.switch[aria-checked="true"] { background: rgba(245,197,66,.3); border-color: var(--gold); }
+.switch[aria-checked="true"]::after { transform: translateX(26px); background: var(--gold-2); }
+.switch:focus-visible, .cycle:focus-visible, .row input:focus-visible { outline-offset: 2px; }
+.cycle { appearance: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 190px; padding: 8px 10px; border-radius: 12px; border: 2px solid var(--line); background: rgba(0,0,0,.35); font-weight: 700; }
+.cycle .arr { color: var(--gold); font-size: 12px; padding: 4px 6px; border-radius: 6px; }
+.cycle .arr:hover { background: rgba(245,197,66,.2); }
+.cycle .val { flex: 1; text-align: center; }
+.row input[type=text] { width: min(220px, 40vw); padding: 10px 12px; border-radius: 12px; border: 2px solid var(--line); background: rgba(0,0,0,.35); color: var(--cream); font: 500 15px var(--f-body); user-select: text; -webkit-user-select: text; }
+.row input[type=text]:focus { border-color: var(--gold); }
+.set-foot { display: flex; justify-content: flex-end; margin-top: 14px; }
+
+/* ---------- Achievements ---------- */
+.ach-head { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+.ach-head b { font-family: var(--f-display); font-weight: 400; font-size: 20px; color: var(--gold-2); white-space: nowrap; }
+.meter { flex: 1; height: 12px; border-radius: 999px; background: rgba(0,0,0,.45); border: 1px solid var(--line); overflow: hidden; }
+.meter i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--gold), var(--gold-2)); transition: width .6s cubic-bezier(.2,.8,.2,1); }
+.ach { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.a { display: flex; gap: 14px; align-items: center; padding: 16px; border-radius: 18px; background: var(--panel); border: 1px solid rgba(255,255,255,.07); }
+.a:focus { border-color: var(--gold); }
+.a > span:last-child { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.a b { font-size: 16px; }
+.a small { color: var(--muted); line-height: 1.35; }
+.a em { font-style: normal; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--gold); }
+.ai { flex-shrink: 0; width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; font-size: 22px; font-family: var(--f-display); background: radial-gradient(circle, #2a2a2a 55%, #111 56%); color: #555; border: 3px dashed #333; }
+.a.on { border-color: var(--line); }
+.a.on .ai { background: radial-gradient(circle, var(--gold-2) 0 55%, var(--gold) 56%); color: #2b1d00; border-color: var(--cream); }
+.a:not(.on) b, .a:not(.on) small { opacity: .6; }
+
+/* ---------- Credits ---------- */
+.credits { height: min(62vh, 560px); overflow-y: auto; text-align: center; scrollbar-width: none; -webkit-mask-image: linear-gradient(transparent, #000 14%, #000 86%, transparent); mask-image: linear-gradient(transparent, #000 14%, #000 86%, transparent); }
+.credits::-webkit-scrollbar { display: none; }
+.credits .pad { height: 45%; }
+.credits .role { color: var(--muted); text-transform: uppercase; letter-spacing: .22em; font-size: 12px; }
+.credits .who { font-family: var(--f-display); font-size: clamp(20px, 2.6vw, 28px); margin: 6px 0 34px; color: var(--cream); }
+.credits .end { font-family: var(--f-display); font-size: clamp(24px, 3.4vw, 38px); color: var(--gold-2); margin: 60px 0 10px; }
+
+/* ---------- Loading ---------- */
+.loading-screen { align-items: center; justify-content: center; text-align: center; gap: 18px; }
+.deal { display: flex; gap: 14px; height: 130px; align-items: flex-end; margin-bottom: 10px; }
+.deal span { width: 80px; height: 112px; border-radius: 10px; background: var(--cream); display: grid; place-items: center; font-size: 46px; box-shadow: 0 14px 28px rgba(0,0,0,.45), inset 0 0 0 4px #fff; }
+.deal.go span { animation: dealin .55s cubic-bezier(.2,.9,.3,1.2) both; }
+.deal.go span:nth-child(2) { animation-delay: .15s; }
+.deal.go span:nth-child(3) { animation-delay: .3s; }
+.deal span:nth-child(1) { transform: rotate(-10deg) translateY(8px); }
+.deal span:nth-child(3) { transform: rotate(10deg) translateY(8px); }
+@keyframes dealin { from { opacity: 0; transform: translate(0, -60vh) rotate(-200deg); } }
+.loading-screen h2 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: clamp(30px, 5vw, 56px); color: var(--gold-2); }
+.ld-sub { color: var(--cream); font-size: 17px; margin: 0; }
+.ld-sub code { font: 700 20px/1 var(--f-display); letter-spacing: .18em; color: var(--gold-2); background: rgba(0,0,0,.35); padding: 6px 12px; border-radius: 10px; border: 1px dashed var(--line); }
+.prog { width: min(480px, 84vw); height: 16px; border-radius: 999px; background: rgba(0,0,0,.45); border: 1px solid var(--line); overflow: hidden; margin-top: 10px; }
+.prog i { display: block; height: 100%; width: 0; background: repeating-linear-gradient(-45deg, var(--gold) 0 12px, var(--gold-2) 12px 24px); }
+.status { color: var(--muted); letter-spacing: .12em; text-transform: uppercase; font-size: 12px; min-height: 1.2em; }
+.tip { max-width: 520px; color: var(--cream); opacity: .9; font-size: 15px; line-height: 1.45; min-height: 2.9em; margin: 8px 0 0; }
+.tip b { color: var(--gold); }
+.ld-actions { display: flex; gap: 12px; margin-top: 8px; }
+
+/* ---------- Goodbye ---------- */
+.bye-screen { align-items: center; justify-content: center; text-align: center; gap: 12px; }
+.bye-screen h2 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: clamp(40px, 7vw, 84px); color: var(--gold-2); }
+.bye-screen p { color: var(--muted); font-size: 17px; margin: 0 0 18px; }
+
+/* ---------- Quit dialog ---------- */
+.modal { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; background: rgba(0,0,0,.6); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); animation: fade .2s; z-index: 5; }
+@keyframes fade { from { opacity: 0 } }
+.modal .box { width: min(440px, 100%); padding: 30px; text-align: center; animation: pop .3s cubic-bezier(.3,1.5,.5,1); }
+@keyframes pop { from { transform: scale(.85); opacity: 0 } }
+.modal h2 { margin: 0 0 10px; font-family: var(--f-display); font-weight: 400; font-size: 30px; color: var(--gold-2); }
+.modal p { color: var(--muted); margin: 0 0 24px; line-height: 1.5; }
+.modal .acts { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+/* ---------- Toasts and footer ---------- */
+#toasts { position: fixed; right: 16px; bottom: 60px; display: flex; flex-direction: column; gap: 10px; z-index: 10; pointer-events: none; }
+.toast { display: flex; gap: 12px; align-items: center; min-width: 260px; padding: 12px 18px 12px 12px; border-radius: 16px; background: linear-gradient(135deg, #1b1b1b, #0c2a21); border: 1px solid var(--gold); box-shadow: 0 16px 40px rgba(0,0,0,.5); animation: tin .45s cubic-bezier(.3,1.4,.5,1), tout .4s 3.8s forwards; }
+.toast .ai { width: 44px; height: 44px; font-size: 18px; background: radial-gradient(circle, var(--gold-2) 0 55%, var(--gold) 56%); color: #2b1d00; border: 3px dashed var(--cream); }
+.toast span:last-child { display: flex; flex-direction: column; gap: 2px; }
+.toast small { color: var(--gold); text-transform: uppercase; letter-spacing: .14em; font-size: 10px; }
+@keyframes tin { from { transform: translateX(120%) } }
+@keyframes tout { to { transform: translateX(120%); opacity: 0 } }
+.foot { position: fixed; left: 0; right: 0; bottom: 0; padding: 12px clamp(16px, 4vw, 56px) calc(12px + env(safe-area-inset-bottom, 0px)); display: flex; justify-content: space-between; align-items: center; gap: 20px; font-size: 12px; color: var(--muted); pointer-events: none; background: linear-gradient(transparent, rgba(0,0,0,.45)); }
+.foot b { color: var(--cream); font-weight: 500; }
+.foot .ticker { flex: 1; text-align: center; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; transition: opacity .4s; }
+.foot kbd { font: 700 11px var(--f-body); padding: 2px 6px; border-radius: 5px; border: 1px solid rgba(255,255,255,.2); color: var(--cream); }
+
+/* ---------- Reduce motion ---------- */
+.rm *, .rm *::before, .rm *::after { transition-duration: 0s !important; }
+.rm .screen.active, .rm .chip, .rm .press, .rm .hero-card.flip, .rm .deal.go span, .rm .modal, .rm .modal .box, .rm .toast, .rm #app.shake { animation: none !important; }
+.rm .toast { animation: tout .01s 4s forwards !important; }
+
+/* ---------- Small screens ---------- */
+@media (max-width: 820px) {
+  .main-grid { grid-template-columns: 1fr; }
+  .right { display: none; }
+  .item:is(:hover, :focus) { transform: translateX(6px); }
+  .foot .keys, .foot .ticker { display: none; }
+  .row { flex-wrap: wrap; }
+  .cycle { min-width: 160px; }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="chip" viewBox="0 0 100 100">
+    <circle cx="50" cy="50" r="48" fill="currentColor"/>
+    <g fill="#f7efe1">
+      <rect x="43" y="2" width="14" height="17" rx="2"/>
+      <rect x="43" y="2" width="14" height="17" rx="2" transform="rotate(60 50 50)"/>
+      <rect x="43" y="2" width="14" height="17" rx="2" transform="rotate(120 50 50)"/>
+      <rect x="43" y="2" width="14" height="17" rx="2" transform="rotate(180 50 50)"/>
+      <rect x="43" y="2" width="14" height="17" rx="2" transform="rotate(240 50 50)"/>
+      <rect x="43" y="2" width="14" height="17" rx="2" transform="rotate(300 50 50)"/>
+    </g>
+    <circle cx="50" cy="50" r="30" fill="none" stroke="#f7efe1" stroke-width="3" stroke-dasharray="5 4"/>
+    <circle cx="50" cy="50" r="23" fill="#000" fill-opacity=".22"/>
+    <text x="50" y="62" text-anchor="middle" font-size="32" fill="#f7efe1" font-family="Georgia, serif">&#9824;</text>
+  </symbol>
+</svg>
+
+<canvas id="bg" aria-hidden="true"></canvas>
+<div class="vignette" aria-hidden="true"></div>
+
+<div id="app">
+  <!-- Title -->
+  <section class="screen title-screen active" data-screen="title" aria-label="Title screen">
+    <h1 class="logo">
+      <span class="l1">We're</span>
+      <span class="l2"><span class="word">All</span><svg class="chip" aria-hidden="true"><use href="#chip"/></svg><span class="word">In</span></span>
+    </h1>
+    <p class="press" data-i18n="press">Press any key</p>
+    <p class="tagline">No take-backs. No folding. Probably.</p>
+  </section>
+
+  <!-- Main menu -->
+  <section class="screen main-screen" data-screen="main" aria-label="Main menu">
+    <div class="main-grid">
+      <div>
+        <h1 class="logo">
+          <span class="l1">We're</span>
+          <span class="l2"><span class="word">All</span><svg class="chip" id="logo-chip" aria-hidden="true"><use href="#chip"/></svg><span class="word">In</span></span>
+        </h1>
+        <nav class="menu" aria-label="Main menu">
+          <button class="item" data-go="play" data-card="play"><svg class="pip" style="color:#d7263d" aria-hidden="true"><use href="#chip"/></svg><span class="lbl" data-i18n="play">Play</span><small>Deal me in</small></button>
+          <button class="item" data-go="settings" data-card="settings"><svg class="pip" style="color:#2f6fde" aria-hidden="true"><use href="#chip"/></svg><span class="lbl" data-i18n="settings">Settings</span><small>Tweak the table</small></button>
+          <button class="item" data-go="achievements" data-card="achievements"><svg class="pip" style="color:#1f9d55" aria-hidden="true"><use href="#chip"/></svg><span class="lbl" data-i18n="achievements">Achievements</span><small id="menu-ach">0 of 9 unlocked</small></button>
+          <button class="item" data-go="credits" data-card="credits"><svg class="pip" style="color:#7b3fe4" aria-hidden="true"><use href="#chip"/></svg><span class="lbl" data-i18n="credits">Credits</span><small>Who to blame</small></button>
+          <button class="item quit" data-go="quit" data-card="quit"><svg class="pip" style="color:#222" aria-hidden="true"><use href="#chip"/></svg><span class="lbl" data-i18n="quit">Quit</span><small>Fold and walk away</small></button>
+        </nav>
+      </div>
+      <div class="right" aria-hidden="true">
+        <div class="hero-card" id="hero">
+          <div class="corner tl"><span class="rk">A</span><i class="st">&#9824;</i></div>
+          <div class="mid"><span class="st">&#9824;</span></div>
+          <div class="corner br"><span class="rk">A</span><i class="st">&#9824;</i></div>
+        </div>
+        <p class="blurb" id="blurb">Push every chip to the middle.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Play -->
+  <section class="screen" data-screen="play" aria-label="Play">
+    <div class="inner">
+      <header class="sh"><button class="btn" data-back>&larr; Back</button><h2>Pick your table</h2></header>
+      <div class="modes">
+        <button class="mode" data-mode="quick"><span class="m-ic s-s">&#9824;</span><b>Quick Match</b><span class="d">Jump into the next open seat. No small talk.</span><em>Online &middot; 2&ndash;8 players</em></button>
+        <button class="mode" data-mode="host"><span class="m-ic s-h">&#9829;</span><b>Host a Table</b><span class="d">A private game for you and your crew. Share the code.</span><em>Invite only</em></button>
+        <button class="mode" data-mode="bots"><span class="m-ic s-c">&#9827;</span><b>Practice vs Bots</b><span class="d">Lose all your money to robots instead of friends.</span><em id="bots-tag">Offline &middot; Bot nerve: Spicy</em></button>
+        <button class="mode" data-mode="daily"><span class="m-ic s-d">&#9830;</span><b>Daily Deal</b><span class="d">One hand. Everyone gets the same cards. Bragging rights only.</span><em>New deal every day</em></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Settings -->
+  <section class="screen" data-screen="settings" aria-label="Settings">
+    <div class="inner" style="max-width:820px">
+      <header class="sh"><button class="btn" data-back>&larr; Back</button><h2>Settings</h2></header>
+      <div class="tabs" role="tablist" aria-label="Settings sections">
+        <button class="tab" role="tab" data-tab="Audio">Audio</button>
+        <button class="tab" role="tab" data-tab="Video">Video</button>
+        <button class="tab" role="tab" data-tab="Gameplay">Gameplay</button>
+      </div>
+      <div class="panel rows" id="rows" role="tabpanel"></div>
+      <div class="set-foot"><button class="btn" id="reset">Reset to defaults</button></div>
+    </div>
+  </section>
+
+  <!-- Achievements -->
+  <section class="screen" data-screen="achievements" aria-label="Achievements">
+    <div class="inner">
+      <header class="sh"><button class="btn" data-back>&larr; Back</button><h2>Achievements</h2></header>
+      <div class="ach-head"><b id="ach-count">0 / 9</b><div class="meter"><i id="ach-bar"></i></div></div>
+      <div class="ach" id="ach"></div>
+    </div>
+  </section>
+
+  <!-- Credits -->
+  <section class="screen" data-screen="credits" aria-label="Credits">
+    <div class="inner" style="max-width:720px">
+      <header class="sh"><button class="btn" data-back>&larr; Back</button><h2>Credits</h2></header>
+      <div class="credits" id="credbox" tabindex="0" aria-label="Credits list"></div>
+    </div>
+  </section>
+
+  <!-- Loading -->
+  <section class="screen loading-screen" data-screen="loading" aria-label="Loading">
+    <div class="deal" id="deal" aria-hidden="true"><span class="s-h">&#9829;</span><span class="s-s">&#9824;</span><span class="s-d">&#9830;</span></div>
+    <h2 id="ld-title">Quick Match</h2>
+    <p class="ld-sub" id="ld-sub"></p>
+    <div class="prog" role="progressbar" aria-label="Loading" aria-valuemin="0" aria-valuemax="100" id="prog"><i id="prog-bar"></i></div>
+    <div class="status" id="status" aria-live="polite">Shuffling the deck&hellip;</div>
+    <p class="tip" id="tip"></p>
+    <div class="ld-actions">
+      <button class="btn" data-back id="ld-cancel">Cancel</button>
+      <button class="btn primary" id="ld-done" hidden>Back to the lobby</button>
+    </div>
+  </section>
+
+  <!-- Goodbye -->
+  <section class="screen bye-screen" data-screen="bye" aria-label="Goodbye">
+    <h2>You folded.</h2>
+    <p>The chips will be right where you left them.</p>
+    <button class="btn primary" id="rejoin">Deal me back in</button>
+  </section>
+</div>
+
+<div class="modal" id="quit" role="dialog" aria-modal="true" aria-labelledby="quit-t" hidden>
+  <div class="box panel">
+    <h2 id="quit-t">Fold already?</h2>
+    <p>You said you were all in. The table will remember this.</p>
+    <div class="acts">
+      <button class="btn primary" id="stay">Stay all in</button>
+      <button class="btn" id="fold">Fold (quit)</button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts" aria-live="polite"></div>
+
+<footer class="foot">
+  <span>Playing as <b id="who">Player One</b></span>
+  <span class="ticker" id="ticker"></span>
+  <span class="keys"><kbd>&uarr;</kbd><kbd>&darr;</kbd> Move &nbsp; <kbd>Enter</kbd> Pick &nbsp; <kbd>Esc</kbd> Back &nbsp;&middot;&nbsp; v0.1</span>
+</footer>
+
+<script>
+/* ============================================================
+   We're All In: main menu
+   - Plain HTML/CSS/JS with no build step. Works with mouse, keyboard and gamepad.
+   - When a player picks a mode, the page fires `wai:start` on window:
+       window.addEventListener('wai:start', e => loadTable(e.detail.mode, e.detail.settings));
+   - Settings and achievements save to localStorage.
+   ============================================================ */
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const rand = (a, b) => a + Math.random() * (b - a);
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+
+/* ---------- Data ---------- */
+const prefersRM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const DEFAULTS = { master: 80, music: 55, sfx: 80, fullscreen: false, particles: 'Lots', shake: true, reduceMotion: prefersRM, name: 'Player One', difficulty: 'Spicy', fourColor: false, tips: true, language: 'English' };
+let S = Object.assign({}, DEFAULTS, store.get('wai.settings', {}), { fullscreen: false });
+
+const SETTINGS = [
+  { tab: 'Audio', key: 'master', label: 'Master volume', type: 'range' },
+  { tab: 'Audio', key: 'music', label: 'Music', hint: 'Smooth casino lounge jazz, made on the fly', type: 'range' },
+  { tab: 'Audio', key: 'sfx', label: 'Sound effects', hint: 'Chip clinks, card shuffles, regret', type: 'range' },
+  { tab: 'Video', key: 'fullscreen', label: 'Fullscreen', type: 'toggle' },
+  { tab: 'Video', key: 'particles', label: 'Falling chips', type: 'cycle', options: ['Off', 'Some', 'Lots', 'Way too many'] },
+  { tab: 'Video', key: 'shake', label: 'Screen shake', hint: 'When you go all in, the table feels it', type: 'toggle' },
+  { tab: 'Video', key: 'reduceMotion', label: 'Reduce motion', hint: 'Stops spinning, sliding and falling', type: 'toggle' },
+  { tab: 'Gameplay', key: 'name', label: 'Player name', type: 'text' },
+  { tab: 'Gameplay', key: 'difficulty', label: 'Bot nerve', hint: 'How often the bots bluff', type: 'cycle', options: ['Chill', 'Spicy', 'Reckless', 'Unhinged'] },
+  { tab: 'Gameplay', key: 'fourColor', label: 'Four-colour deck', hint: 'Gives every suit its own colour', type: 'toggle' },
+  { tab: 'Gameplay', key: 'tips', label: 'Loading-screen tips', type: 'toggle' },
+  { tab: 'Gameplay', key: 'language', label: 'Language', hint: 'More languages coming. Pirate came first.', type: 'cycle', options: ['English', 'Pirate'] },
+];
+
+const ACH = [
+  { id: 'all_in', icon: '♠', name: 'All In', desc: 'Sit down at your first table.' },
+  { id: 'cold_feet', icon: '❄︎', name: 'Cold Feet', desc: 'Almost quit. Then didn’t.' },
+  { id: 'tinkerer', icon: '⚙︎', name: 'Tinkerer', desc: 'Change 5 different settings.' },
+  { id: 'turn_it_up', icon: '♫', name: 'Turn It Up', desc: 'Max out every volume slider.' },
+  { id: 'lucky_seven', icon: '7', name: 'Lucky Seven', desc: 'Click the spinning chip in the logo 7 times.' },
+  { id: 'high_roller', icon: '★', name: 'High Roller', desc: 'Enter the secret code: ↑ ↑ ↓ ↓ ← → ← → B A', secret: 'Secret. The code is older than most of the bots.' },
+  { id: 'poker_face', icon: '◉', name: 'Poker Face', desc: 'Leave the menu alone for 60 seconds. Don’t blink.' },
+  { id: 'night_owl', icon: '☾', name: 'Night Owl', desc: 'Open the game between midnight and 5 AM.' },
+  { id: 'fine_print', icon: '✎︎', name: 'Read the Fine Print', desc: 'Watch the credits all the way to the end.' },
+];
+let got = store.get('wai.ach', {});
+const tinker = new Set(store.get('wai.tinker', []));
+
+const HERO = {
+  play:         { rank: 'A', suit: '♠', cls: 's-s', blurb: 'Push every chip to the middle.' },
+  settings:     { rank: 'Q', suit: '♣', cls: 's-c', blurb: 'Tweak the table until it feels lucky.' },
+  achievements: { rank: 'K', suit: '♦', cls: 's-d', blurb: 'Proof you were there.' },
+  credits:      { rank: 'J', suit: '♥', cls: 's-h', blurb: 'The people who made this. Blame them.' },
+  quit:         { rank: '★', suit: '', cls: 's-j', blurb: 'Folding? Already?', joker: true },
+};
+
+const TIPS = [
+  'Going all in is always the right call. <b>(It is not.)</b>',
+  'Fortune favours the bold. So does bankruptcy.',
+  'Bots on <b>Unhinged</b> have never folded. Not once. Not ever.',
+  'Chips are not snacks. We checked so you don’t have to.',
+  'Your poker face is visible to exactly zero people online. Smile anyway.',
+  'The secret code is older than most of the bots.',
+  'Fold early, fold often, or don’t. We’re not your mum.',
+  'Every legend started by losing a hand they were sure about.',
+  'Try clicking the spinning chip. Then try it six more times.',
+  'If you can’t spot the bluffer at the table, check the mirror.',
+];
+
+const CREDITS = [
+  ['Game Design', 'The We’re All In Team'],
+  ['Chief Chip Stacker', 'Somebody Very Patient'],
+  ['Head of Bluffing', 'Classified'],
+  ['Senior Card Shuffler', 'Two Left Hands'],
+  ['Director of Dramatic Pauses', '…'],
+  ['Bot Emotional Support', 'The Unhinged Bots’ Therapist'],
+  ['Lounge Music', 'A Very Small Synthesizer'],
+  ['Quality Assurance', 'Everyone Who Went All In Too Early'],
+  ['Special Thanks', 'You, for not folding'],
+];
+
+const PIRATE = { play: 'Set Sail', settings: 'Rig the Ship', achievements: 'Plunder', credits: 'The Crew', quit: 'Abandon Ship', press: 'Press any key, matey' };
+const ENGLISH = { play: 'Play', settings: 'Settings', achievements: 'Achievements', credits: 'Credits', quit: 'Quit', press: 'Press any key' };
+
+/* ---------- Audio (synthesized, no files) ---------- */
+let AC = null, master, musicG, sfxG, musicTimer = null, nextT = 0, step = 0;
+const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
+function initAudio() {
+  if (AC) { if (AC.state === 'suspended') AC.resume(); return; }
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx) return;
+  AC = new Ctx();
+  master = AC.createGain(); musicG = AC.createGain(); sfxG = AC.createGain();
+  musicG.connect(master); sfxG.connect(master); master.connect(AC.destination);
+  applyVolumes();
+  nextT = AC.currentTime + .15;
+  musicTimer = setInterval(scheduleMusic, 40);
+}
+function applyVolumes() {
+  if (!AC) return;
+  const t = AC.currentTime;
+  master.gain.setTargetAtTime(Math.pow(S.master / 100, 2), t, .03);
+  musicG.gain.setTargetAtTime(Math.pow(S.music / 100, 2) * .55, t, .03);
+  sfxG.gain.setTargetAtTime(Math.pow(S.sfx / 100, 2), t, .03);
+}
+function tone(freq, t, dur, type = 'sine', vol = .2, dest = sfxG) {
+  if (!AC) return;
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.setValueAtTime(freq, t);
+  g.gain.setValueAtTime(.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol, t + .008);
+  g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+  o.connect(g).connect(dest); o.start(t); o.stop(t + dur + .03);
+}
+let noiseBuf = null;
+function noise(t, dur, vol, freq = 6000, dest = sfxG) {
+  if (!AC) return;
+  if (!noiseBuf) { noiseBuf = AC.createBuffer(1, AC.sampleRate, AC.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
+  const s = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain();
+  s.buffer = noiseBuf; f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = .9;
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+  s.connect(f).connect(g).connect(dest); s.start(t, Math.random() * .5); s.stop(t + dur + .02);
+}
+const now = () => AC ? AC.currentTime : 0;
+let lastTick = 0;
+const sfx = {
+  tick() { const t = performance.now(); if (t - lastTick < 45) return; lastTick = t; tone(1900, now(), .035, 'square', .025); },
+  clink(d = 0) { const t = now() + d, p = rand(.92, 1.1); tone(2650 * p, t, .14, 'triangle', .12); tone(4100 * p, t + .015, .1, 'sine', .07); },
+  back() { tone(520, now(), .09, 'triangle', .1); tone(360, now() + .05, .12, 'triangle', .08); },
+  toggle(on) { tone(on ? 980 : 620, now(), .07, 'square', .045); },
+  unlock() { [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, now() + i * .07, .32, 'triangle', .11)); },
+  shuffle() { for (let i = 0; i < 14; i++) noise(now() + i * .028, .05, .18, rand(3000, 7000)); },
+  shower() { for (let i = 0; i < 18; i++) this.clink(i * rand(.04, .09)); },
+};
+// A gentle swung lounge loop: Am7, Dm7, G7, Cmaj7.
+const CHORDS = [[57, 60, 64, 67], [53, 57, 60, 64], [55, 59, 62, 65], [55, 59, 64, 67]];
+const BASS = [45, 38, 43, 48];
+function scheduleMusic() {
+  if (!AC || AC.state !== 'running') return;
+  const eighth = 60 / 96 / 2;
+  if (nextT < AC.currentTime - .5) nextT = AC.currentTime + .05; // the tab was asleep
+  while (nextT < AC.currentTime + .25) {
+    const bar = Math.floor(step / 8) % 4, e = step % 8;
+    const t = nextT + (e % 2 ? eighth * .34 : 0);
+    const root = BASS[bar];
+    if (e === 0) tone(mtof(root), t, .5, 'triangle', .28, musicG);
+    if (e === 4) tone(mtof(root + 7), t, .45, 'triangle', .22, musicG);
+    if (e === 6 && Math.random() < .6) tone(mtof(root + (Math.random() < .5 ? 12 : 10)), t, .25, 'triangle', .16, musicG);
+    if (e === 3 || e === 7) CHORDS[bar].forEach(n => tone(mtof(n), t, .22, 'sine', .045, musicG));
+    if (e % 2) noise(t, .04, .03, 9000, musicG);
+    if (e === 2 && Math.random() < .35) tone(mtof(CHORDS[bar][Math.floor(Math.random() * 4)] + 12), t, .35, 'sine', .035, musicG);
+    nextT += eighth; step++;
+  }
+}
+document.addEventListener('visibilitychange', () => { if (!AC) return; document.hidden ? AC.suspend() : AC.resume(); });
+
+/* ---------- Background: falling chips and suits ---------- */
+const cv = $('#bg'), cx = cv.getContext('2d');
+let W = 0, H = 0, parts = [];
+const mouse = { x: 0, y: 0 };
+const CHIPC = ['#d7263d', '#2f6fde', '#1f9d55', '#151515', '#e8b21c', '#7b3fe4'];
+const DENSITY = { 'Off': 0, 'Some': 16, 'Lots': 38, 'Way too many': 150 };
+function resize() {
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  W = innerWidth; H = innerHeight;
+  cv.width = W * dpr; cv.height = H * dpr; cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  mouse.x = W / 2; mouse.y = H / 2;
+}
+function spawn(burst) {
+  const z = rand(.4, 1.2);
+  return {
+    x: rand(0, W), y: burst ? rand(-H * .6, -30) : rand(-40, H), z,
+    r: rand(9, 20) * z, vy: burst ? rand(320, 720) : rand(14, 38) * z, vx: rand(-1, 1) * (burst ? 90 : 10),
+    rot: rand(0, 6.28), vr: rand(-1, 1) * (burst ? 9 : 1.3),
+    kind: burst || Math.random() < .7 ? 'chip' : 'suit', col: pick(CHIPC), suit: pick(['♠', '♥', '♦', '♣']), burst,
+  };
+}
+function setDensity() {
+  const want = DENSITY[S.particles] ?? 38;
+  const amb = parts.filter(p => !p.burst), bursts = parts.filter(p => p.burst);
+  while (amb.length < want) amb.push(spawn(false));
+  parts = bursts.concat(amb.slice(0, want));
+}
+function suitColour(s) {
+  if (s === '♥') return '#e0384e';
+  if (s === '♦') return S.fourColor ? '#3d7fe6' : '#e0384e';
+  if (s === '♣') return S.fourColor ? '#2fae5b' : '#0b0b0b';
+  return '#0b0b0b';
+}
+function drawPart(p) {
+  const ox = (mouse.x - W / 2) * -.02 * p.z, oy = (mouse.y - H / 2) * -.02 * p.z;
+  cx.save();
+  cx.translate(p.x + ox, p.y + oy);
+  cx.globalAlpha = p.burst ? .95 : .18 + .45 * (p.z - .4) / .8;
+  if (p.kind === 'chip') {
+    const r = p.r;
+    cx.rotate(p.rot * .4);
+    cx.scale(1, .3 + .7 * Math.abs(Math.cos(p.rot)));
+    cx.fillStyle = p.col; cx.beginPath(); cx.arc(0, 0, r, 0, 6.2832); cx.fill();
+    cx.fillStyle = '#f7efe1';
+    for (let i = 0; i < 6; i++) { cx.save(); cx.rotate(i * Math.PI / 3); cx.fillRect(-r * .15, -r, r * .3, r * .32); cx.restore(); }
+    cx.strokeStyle = 'rgba(247,239,225,.75)'; cx.lineWidth = Math.max(1, r * .07);
+    cx.beginPath(); cx.arc(0, 0, r * .62, 0, 6.2832); cx.stroke();
+  } else {
+    cx.rotate(Math.sin(p.rot) * .5);
+    cx.fillStyle = suitColour(p.suit);
+    cx.font = `${p.r * 2.4}px Georgia, serif`; cx.textAlign = 'center'; cx.textBaseline = 'middle';
+    cx.fillText(p.suit, 0, 0);
+  }
+  cx.restore();
+}
+let lastFrame = performance.now();
+function frame(t) {
+  const dt = Math.min(.05, (t - lastFrame) / 1000); lastFrame = t;
+  pollPad();
+  cx.clearRect(0, 0, W, H);
+  const moving = !S.reduceMotion;
+  for (const p of parts) {
+    if (moving || p.burst) { p.y += p.vy * dt; p.x += p.vx * dt; p.rot += p.vr * dt; }
+    if (p.y > H + 50) { if (p.burst) p.dead = true; else { p.y = -40; p.x = rand(0, W); } }
+    drawPart(p);
+  }
+  if (parts.some(p => p.dead)) parts = parts.filter(p => !p.dead);
+  requestAnimationFrame(frame);
+}
+function chipShower(n = 160) { for (let i = 0; i < n; i++) parts.push(spawn(true)); sfx.shower(); shake(); }
+
+/* ---------- Navigation ---------- */
+let stack = ['title'];
+const current = () => stack[stack.length - 1];
+const quitOpen = () => !$('#quit').hidden;
+function show(name, push = true) {
+  if (name === 'quit') { openQuit(); return; }
+  $$('.screen').forEach(s => s.classList.toggle('active', s.dataset.screen === name));
+  if (push) stack.push(name);
+  (ENTER[name] || (() => {}))();
+  focusFirst();
+}
+function focusFirst() {
+  const scr = $('.screen.active');
+  const el = scr && (scr.querySelector('[data-autofocus]') || focusables(scr).find(e => !e.matches('[data-back]')) || focusables(scr)[0]);
+  if (el) el.focus({ preventScroll: true });
+}
+function back() {
+  if (quitOpen()) { closeQuit(); return; }
+  const cur = current();
+  if (cur === 'title' || cur === 'bye') return;
+  if (cur === 'main') { openQuit(); return; }
+  if (cur === 'loading') stopLoading();
+  sfx.back();
+  if (cur === 'loading' && loadDone) { home(); return; }
+  stack.pop();
+  const prev = current();
+  show(prev, false);
+  const from = $(`.item[data-go="${cur}"]`);
+  if (prev === 'main' && from) from.focus({ preventScroll: true });
+}
+function home() { stack = ['main']; show('main', false); }
+function enterMenu() {
+  if (current() !== 'title') return;
+  initAudio(); sfx.shuffle();
+  stack = ['main']; show('main', false);
+  const h = new Date().getHours(); if (h < 5) unlock('night_owl');
+}
+const ENTER = {
+  main() { updateHero(document.activeElement?.dataset?.card || 'play', true); refreshMenuCount(); },
+  play() { $('#bots-tag').textContent = `Offline · Bot nerve: ${S.difficulty}`; },
+  settings() { renderSettings(); },
+  achievements() { renderAch(); },
+  credits() { startCredits(); },
+};
+
+function focusables(root) {
+  return $$('button:not([disabled]), input, [tabindex="0"]', root).filter(el => el.offsetParent !== null && !el.closest('[hidden]'));
+}
+function move(dir) {
+  const root = quitOpen() ? $('#quit') : $('.screen.active');
+  const list = focusables(root); if (!list.length) return;
+  let i = list.indexOf(document.activeElement);
+  i = i < 0 ? 0 : (i + dir + list.length) % list.length;
+  list[i].focus({ preventScroll: true });
+  list[i].scrollIntoView({ block: 'nearest' });
+}
+
+/* ---------- Hero card ---------- */
+let heroKey = null;
+function updateHero(k, instant) {
+  if (!HERO[k] || k === heroKey) return;
+  heroKey = k;
+  const card = $('#hero'), h = HERO[k];
+  const fill = () => {
+    card.className = 'hero-card ' + (card.classList.contains('flip') ? 'flip ' : '') + h.cls;
+    $$('.rk', card).forEach(e => e.textContent = h.rank);
+    $$('.corner .st', card).forEach(e => e.textContent = h.suit);
+    $('.mid', card).innerHTML = h.joker ? '<span class="joker">JOKER</span>' : `<span class="st">${h.suit}</span>`;
+    $('#blurb').textContent = h.blurb;
+  };
+  if (instant || S.reduceMotion) { fill(); return; }
+  card.classList.remove('flip'); void card.offsetWidth; card.classList.add('flip');
+  setTimeout(fill, 180);
+}
+
+/* ---------- Quit ---------- */
+let quitReturn = null;
+function openQuit() {
+  quitReturn = document.activeElement;
+  $('#quit').hidden = false; sfx.back();
+  $('#stay').focus();
+}
+function closeQuit() {
+  $('#quit').hidden = true; sfx.clink();
+  unlock('cold_feet');
+  (quitReturn && quitReturn.isConnected ? quitReturn : $('.item[data-go="quit"]')).focus({ preventScroll: true });
+}
+$('#stay').addEventListener('click', closeQuit);
+$('#fold').addEventListener('click', () => {
+  $('#quit').hidden = true; sfx.back();
+  if (musicG) musicG.gain.setTargetAtTime(0, AC.currentTime, .4);
+  stack = ['bye']; show('bye', false);
+  try { window.close(); } catch {} // Works when wrapped as a desktop app. Browsers ignore it.
+});
+$('#rejoin').addEventListener('click', () => { applyVolumes(); sfx.shuffle(); home(); });
+
+/* ---------- Settings ---------- */
+let tab = 'Audio';
+function renderSettings() {
+  $$('.tab').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
+  $('#rows').innerHTML = SETTINGS.filter(s => s.tab === tab).map(s => {
+    const v = S[s.key], id = 'l-' + s.key;
+    const lab = `<span class="rl" id="${id}"><b>${s.label}</b>${s.hint ? `<small>${s.hint}</small>` : ''}</span>`;
+    if (s.type === 'range') return `<label class="row">${lab}<span class="ctl"><input type="range" min="0" max="100" step="5" value="${v}" data-key="${s.key}" aria-labelledby="${id}"><output>${v}</output></span></label>`;
+    if (s.type === 'toggle') return `<div class="row">${lab}<button class="switch" role="switch" aria-checked="${!!v}" aria-labelledby="${id}" data-key="${s.key}"></button></div>`;
+    if (s.type === 'cycle') return `<div class="row">${lab}<button class="cycle" data-key="${s.key}" aria-labelledby="${id}"><span class="arr l" aria-hidden="true">&#9664;</span><span class="val">${esc(v)}</span><span class="arr r" aria-hidden="true">&#9654;</span></button></div>`;
+    return `<label class="row">${lab}<input type="text" maxlength="16" spellcheck="false" value="${esc(v)}" data-key="${s.key}" aria-labelledby="${id}"></label>`;
+  }).join('');
+}
+function setTab(t) { if (t === tab) return; tab = t; sfx.clink(); renderSettings(); $(`.tab[data-tab="${t}"]`).focus(); }
+$$('.tab').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
+function set(key, val, quiet) {
+  S[key] = val;
+  store.set('wai.settings', S);
+  if (!quiet) { tinker.add(key); store.set('wai.tinker', [...tinker]); if (tinker.size >= 5) unlock('tinkerer'); }
+  apply(key);
+}
+function apply(key) {
+  applyVolumes();
+  document.body.classList.toggle('fourc', !!S.fourColor);
+  document.body.classList.toggle('rm', !!S.reduceMotion);
+  if (!key || key === 'particles') setDensity();
+  if (!key || key === 'language') { const d = S.language === 'Pirate' ? PIRATE : ENGLISH; $$('[data-i18n]').forEach(el => el.textContent = d[el.dataset.i18n]); }
+  if (!key || key === 'name') $('#who').textContent = S.name || 'Player One';
+  if (key === 'fullscreen') toggleFS(S.fullscreen);
+  if (S.master === 100 && S.music === 100 && S.sfx === 100) unlock('turn_it_up');
+}
+function cycle(btn, dir) {
+  const s = SETTINGS.find(x => x.key === btn.dataset.key);
+  const i = s.options.indexOf(S[s.key]);
+  const v = s.options[(i + dir + s.options.length) % s.options.length];
+  set(s.key, v); $('.val', btn).textContent = v; sfx.clink();
+}
+function toggle(btn, val) {
+  const k = btn.dataset.key, v = val === undefined ? !S[k] : val;
+  if (v === S[k]) return;
+  set(k, v); btn.setAttribute('aria-checked', String(!!S[k])); sfx.toggle(S[k]);
+}
+$('#rows').addEventListener('click', e => {
+  const sw = e.target.closest('.switch'); if (sw) { toggle(sw); return; }
+  const cy = e.target.closest('.cycle'); if (cy) cycle(cy, e.target.closest('.arr.l') ? -1 : 1);
+});
+$('#rows').addEventListener('input', e => {
+  const t = e.target;
+  if (t.type === 'range') { set(t.dataset.key, +t.value); t.nextElementSibling.textContent = t.value; sfx.tick(); }
+  if (t.type === 'text') set(t.dataset.key, t.value.trim() || 'Player One');
+});
+$('#reset').addEventListener('click', () => {
+  const fs = S.fullscreen;
+  S = Object.assign({}, DEFAULTS, { fullscreen: fs });
+  store.set('wai.settings', S); apply(); renderSettings(); sfx.back(); shake();
+});
+function toggleFS(on) {
+  const el = document.documentElement;
+  const done = () => { S.fullscreen = !!document.fullscreenElement; syncSwitch('fullscreen'); };
+  try {
+    if (on && !document.fullscreenElement) (el.requestFullscreen ? el.requestFullscreen() : Promise.reject()).catch(done);
+    else if (!on && document.fullscreenElement) document.exitFullscreen().catch(done);
+  } catch { done(); }
+}
+function syncSwitch(k) { const b = $(`.switch[data-key="${k}"]`); if (b) b.setAttribute('aria-checked', String(!!S[k])); }
+document.addEventListener('fullscreenchange', () => { S.fullscreen = !!document.fullscreenElement; syncSwitch('fullscreen'); });
+
+/* ---------- Achievements ---------- */
+function unlock(id) {
+  if (got[id]) return;
+  const a = ACH.find(x => x.id === id); if (!a) return;
+  got[id] = Date.now(); store.set('wai.ach', got);
+  sfx.unlock();
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.innerHTML = `<span class="ai">${a.icon}</span><span><small>Achievement unlocked</small><b>${a.name}</b></span>`;
+  $('#toasts').append(el); setTimeout(() => el.remove(), 4400);
+  refreshMenuCount();
+  if (current() === 'achievements') renderAch();
+}
+function refreshMenuCount() { $('#menu-ach').textContent = `${ACH.filter(a => got[a.id]).length} of ${ACH.length} unlocked`; }
+function renderAch() {
+  const n = ACH.filter(a => got[a.id]).length;
+  $('#ach-count').textContent = `${n} / ${ACH.length}`;
+  $('#ach-bar').style.width = (n / ACH.length * 100) + '%';
+  $('#ach').innerHTML = ACH.map(a => {
+    const on = !!got[a.id], hide = !on && a.secret;
+    return `<div class="a${on ? ' on' : ''}" tabindex="0"><span class="ai" aria-hidden="true">${on ? a.icon : '?'}</span><span><b>${hide ? '???' : a.name}</b><small>${hide ? a.secret : a.desc}</small>${on ? `<em>Unlocked ${new Date(got[a.id]).toLocaleDateString()}</em>` : ''}</span></div>`;
+  }).join('');
+}
+
+/* ---------- Credits ---------- */
+const credbox = $('#credbox');
+credbox.innerHTML = '<div class="pad"></div>' + CREDITS.map(([r, w]) => `<div class="role">${esc(r)}</div><div class="who">${esc(w)}</div>`).join('') + '<div class="end">Thanks for playing.</div><div class="role">We’re all in on you.</div><div class="pad"></div>';
+let credPos = 0, credPauseUntil = 0;
+function startCredits() { credbox.scrollTop = 0; credPos = 0; credPauseUntil = performance.now() + 600; }
+function tickCredits(t) {
+  if (current() !== 'credits' || S.reduceMotion || t < credPauseUntil) return;
+  credPos += 0.5; credbox.scrollTop = credPos;
+}
+const pauseCredits = () => { credPauseUntil = performance.now() + 3000; credPos = credbox.scrollTop; };
+['wheel', 'touchstart', 'pointerdown'].forEach(ev => credbox.addEventListener(ev, pauseCredits, { passive: true }));
+credbox.addEventListener('scroll', () => { if (credbox.scrollTop + credbox.clientHeight >= credbox.scrollHeight - 4) unlock('fine_print'); });
+
+/* ---------- Loading a table ---------- */
+const MODES = {
+  quick: { title: 'Quick Match', sub: () => 'Finding you a seat…' },
+  host:  { title: 'Host a Table', sub: () => { const c = Array.from({ length: 5 }, () => pick([...'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'])).join(''); return `Table code <code>${c}</code>`; } },
+  bots:  { title: 'Practice vs Bots', sub: () => `Bot nerve: ${esc(S.difficulty)}` },
+  daily: { title: 'Daily Deal', sub: () => `Today’s hand: ${new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric' })}` },
+};
+const STATUS = [[25, 'Shuffling the deck…'], [50, 'Counting chips…'], [75, 'Bribing the dealer…'], [99, 'Polishing the felt…'], [101, 'Shuffling one more time, for luck…']];
+let loadTimer = null, tipTimer = null, loadDone = false;
+function setTip() { $('#tip').innerHTML = S.tips ? '<b>Tip:</b> ' + pick(TIPS) : ''; }
+function startLoading(mode) {
+  const m = MODES[mode];
+  sfx.shuffle(); shake();
+  show('loading');
+  loadDone = false;
+  $('#ld-title').textContent = m.title;
+  $('#ld-sub').innerHTML = m.sub();
+  $('#ld-done').hidden = true; $('#ld-cancel').hidden = false;
+  const deal = $('#deal'); deal.classList.remove('go'); void deal.offsetWidth; deal.classList.add('go');
+  setTip(); clearInterval(tipTimer); tipTimer = setInterval(setTip, 3500);
+  let p = 0, hold = 0;
+  const bar = $('#prog-bar'), prog = $('#prog');
+  clearInterval(loadTimer);
+  loadTimer = setInterval(() => {
+    if (p >= 99) { if (++hold < 14) { $('#status').textContent = STATUS[4][1]; return; } p = 100; }
+    else p = Math.min(99, p + (p > 60 && p < 72 ? rand(0, .6) : rand(.4, 2.6)));
+    bar.style.width = p + '%'; prog.setAttribute('aria-valuenow', Math.round(p));
+    if (p < 100) { $('#status').textContent = STATUS.find(([lim]) => p < lim)[1]; return; }
+    stopLoading(); loadDone = true;
+    $('#status').textContent = 'You’re dealt in!';
+    sfx.unlock(); unlock('all_in');
+    $('#ld-cancel').hidden = true; $('#ld-done').hidden = false; $('#ld-done').focus();
+    // This is where the real game takes over. Listen for this event to load the table scene.
+    window.dispatchEvent(new CustomEvent('wai:start', { detail: { mode, settings: { ...S } } }));
+  }, 60);
+}
+function stopLoading() { clearInterval(loadTimer); clearInterval(tipTimer); }
+$('#ld-done').addEventListener('click', () => { sfx.clink(); home(); });
+
+/* ---------- Fun stuff ---------- */
+function shake() {
+  if (!S.shake || S.reduceMotion) return;
+  const a = $('#app'); a.classList.remove('shake'); void a.offsetWidth; a.classList.add('shake');
+}
+let chipClicks = 0;
+$('#logo-chip').addEventListener('click', e => {
+  e.stopPropagation();
+  chipClicks++; sfx.clink();
+  const c = e.currentTarget; c.classList.add('fast'); setTimeout(() => c.classList.remove('fast'), 600);
+  if (chipClicks === 7) { unlock('lucky_seven'); chipShower(70); }
+});
+const KONAMI = ['arrowup', 'arrowup', 'arrowdown', 'arrowdown', 'arrowleft', 'arrowright', 'arrowleft', 'arrowright', 'b', 'a'];
+let kbuf = [];
+function konami(key) {
+  kbuf.push(String(key).toLowerCase()); kbuf = kbuf.slice(-KONAMI.length);
+  if (kbuf.join() === KONAMI.join()) { kbuf = []; chipShower(); unlock('high_roller'); }
+}
+let lastInput = Date.now();
+const poke = () => { lastInput = Date.now(); };
+['pointermove', 'pointerdown', 'wheel', 'touchstart'].forEach(ev => addEventListener(ev, poke, { passive: true }));
+setInterval(() => {
+  if (!quitOpen() && ['main', 'title'].includes(current()) && Date.now() - lastInput > 60000) unlock('poker_face');
+}, 1000);
+const ticker = $('#ticker');
+function nextTicker() { ticker.style.opacity = 0; setTimeout(() => { ticker.innerHTML = pick(TIPS); ticker.style.opacity = 1; }, 400); }
+setInterval(nextTicker, 7000);
+
+/* ---------- Input ---------- */
+function handleKey(e) {
+  poke(); konami(e.key);
+  if (current() === 'title') {
+    if (!e.metaKey && !e.ctrlKey && !e.altKey && e.key !== 'Tab' && e.key !== 'Shift') { e.preventDefault(); enterMenu(); }
+    return;
+  }
+  const t = e.target instanceof Element ? e.target : document.body;
+  const typing = t.matches('input[type=text]');
+  switch (e.key) {
+    case 'ArrowDown': case 'ArrowUp': {
+      e.preventDefault();
+      if (t === credbox) { credbox.scrollTop += e.key === 'ArrowDown' ? 60 : -60; pauseCredits(); return; }
+      move(e.key === 'ArrowDown' ? 1 : -1); return;
+    }
+    case 'ArrowLeft': case 'ArrowRight': {
+      const dir = e.key === 'ArrowRight' ? 1 : -1;
+      if (t.matches('.cycle')) { e.preventDefault(); cycle(t, dir); }
+      else if (t.matches('.switch')) { e.preventDefault(); toggle(t, dir > 0); }
+      else if (t.matches('.tab')) { e.preventDefault(); const tabs = $$('.tab'); setTab(tabs[(tabs.indexOf(t) + dir + tabs.length) % tabs.length].dataset.tab); }
+      else if (t.matches('.mode, .btn, .a')) { e.preventDefault(); move(dir); }
+      return;
+    }
+    case 'Tab': if (quitOpen()) { e.preventDefault(); move(e.shiftKey ? -1 : 1); } return;
+    case 'Escape': e.preventDefault(); back(); return;
+    case 'Backspace': if (!typing) { e.preventDefault(); back(); } return;
+    case 'Enter': if (typing) { t.blur(); move(1); } return;
+  }
+}
+addEventListener('keydown', handleKey);
+$('[data-screen="title"]').addEventListener('click', enterMenu);
+document.addEventListener('click', e => {
+  initAudio();
+  const go = e.target.closest('[data-go]'); if (go) { sfx.clink(); show(go.dataset.go); return; }
+  if (e.target.closest('[data-back]')) { back(); return; }
+  const m = e.target.closest('[data-mode]'); if (m) startLoading(m.dataset.mode);
+});
+document.addEventListener('pointerover', e => {
+  if (e.pointerType !== 'mouse') return;
+  const el = e.target.closest('.item, .mode');
+  if (el && el !== document.activeElement && !quitOpen()) el.focus({ preventScroll: true });
+});
+document.addEventListener('focusin', e => {
+  const t = e.target;
+  if (t.matches && t.matches('.item, .mode, .tab, .btn, .switch, .cycle, .a, input')) sfx.tick();
+  if (t.dataset && t.dataset.card) updateHero(t.dataset.card);
+});
+addEventListener('pointermove', e => { mouse.x = e.clientX; mouse.y = e.clientY; }, { passive: true });
+addEventListener('resize', () => { resize(); setDensity(); });
+
+// Gamepad: D-pad or left stick moves, A picks, B goes back.
+let padPrev = {};
+function pollPad() {
+  const gp = navigator.getGamepads ? [...navigator.getGamepads()].find(Boolean) : null;
+  if (!gp) return;
+  const b = i => !!(gp.buttons[i] && gp.buttons[i].pressed);
+  const ay = gp.axes[1] || 0, ax = gp.axes[0] || 0;
+  const st = { up: b(12) || ay < -.6, down: b(13) || ay > .6, left: b(14) || ax < -.6, right: b(15) || ax > .6, a: b(0), b: b(1), start: b(9) };
+  for (const k in st) if (st[k] && !padPrev[k]) padPress(k);
+  padPrev = st;
+}
+function padPress(k) {
+  poke();
+  if (current() === 'title') { enterMenu(); return; }
+  if (k === 'a') { const el = document.activeElement; if (el && el !== document.body) el.click(); return; }
+  if (k === 'start' && current() === 'main') { openQuit(); return; }
+  const key = { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight', b: 'Escape' }[k];
+  if (key) handleKey({ key, target: document.activeElement || document.body, preventDefault() {}, shiftKey: false });
+}
+
+/* ---------- Boot ---------- */
+resize(); apply(); nextTicker(); refreshMenuCount();
+(function loop(t) { tickCredits(t); requestAnimationFrame(loop); })(performance.now());
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

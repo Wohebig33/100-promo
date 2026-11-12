@@ -1,0 +1,791 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>House Edge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Rubik:wght@400;500;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* House Edge mod panel. A single dark look on purpose, to sit next to a game: card-table felt, gold for anything that's on. */
+:root {
+  color-scheme: dark;
+  --bg: #06201a; --bg-2: #0a2b22; --felt: #0d3b2e;
+  --panel: rgba(4, 22, 16, .82); --panel-2: rgba(255,255,255,.04);
+  --line: rgba(245,197,66,.22); --line-soft: rgba(255,255,255,.08);
+  --gold: #f5c542; --gold-2: #ffdf7e; --ink: #2b1d00;
+  --cream: #f7efe1; --muted: #9fb8ad; --red: #ef4a5c; --green: #3ddc84; --amber: #ffb547;
+  --f-display: "Bungee", Impact, "Arial Black", sans-serif;
+  --f-body: "Rubik", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; min-height: 100%; }
+body { background: radial-gradient(ellipse at 50% -10%, #145240 0%, var(--felt) 35%, var(--bg) 85%) fixed; color: var(--cream); font: 14px/1.45 var(--f-body); -webkit-font-smoothing: antialiased; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.mono { font-family: var(--f-mono); font-size: 12px; }
+
+/* ---------- top bar ---------- */
+.top { position: sticky; top: 0; z-index: 4; display: flex; align-items: center; gap: 12px; padding: 12px 18px; background: rgba(4,18,13,.86); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line-soft); flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 10px; font-family: var(--f-display); font-size: 20px; letter-spacing: .02em; color: var(--gold-2); white-space: nowrap; }
+.brand svg { width: 30px; height: 30px; color: #d7263d; animation: spin 9s linear infinite; }
+.attached .brand svg { animation-duration: 2.4s; }
+@keyframes spin { to { transform: rotate(360deg) } }
+.pill { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px 7px 10px; border-radius: 999px; border: 1px solid var(--line-soft); background: rgba(0,0,0,.35); cursor: pointer; font-weight: 500; max-width: 100%; }
+.pill:hover { border-color: var(--line); }
+.pill span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--amber); box-shadow: 0 0 0 0 rgba(255,181,71,.6); animation: ping 1.6s infinite; flex-shrink: 0; }
+.attached .dot { background: var(--green); animation: none; box-shadow: 0 0 10px var(--green); }
+@keyframes ping { 70% { box-shadow: 0 0 0 8px rgba(255,181,71,0) } 100% { box-shadow: 0 0 0 0 rgba(255,181,71,0) } }
+.grow { flex: 1; }
+.icon { appearance: none; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; border: 1px solid var(--line-soft); background: rgba(0,0,0,.3); cursor: pointer; font-size: 16px; }
+.icon:hover { border-color: var(--gold); color: var(--gold-2); }
+.icon.sm { width: 28px; height: 28px; font-size: 13px; border-radius: 8px; }
+
+.tabs { display: flex; gap: 6px; padding: 12px 18px 0; max-width: 1180px; margin: 0 auto; }
+.tab { appearance: none; border: 0; cursor: pointer; padding: 9px 16px; border-radius: 999px; background: transparent; color: var(--muted); font-family: var(--f-display); font-size: 13px; letter-spacing: .04em; }
+.tab:hover { color: var(--cream); background: rgba(255,255,255,.05); }
+.tab[aria-selected="true"] { background: var(--gold); color: var(--ink); }
+main { max-width: 1180px; margin: 0 auto; padding: 16px 18px 60px; }
+
+/* ---------- shared ---------- */
+.panel { background: var(--panel); border: 1px solid var(--line-soft); border-radius: 18px; }
+.btn { appearance: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 9px 16px; border-radius: 999px; border: 1px solid var(--line); background: rgba(0,0,0,.3); font-weight: 700; font-size: 13px; letter-spacing: .02em; white-space: nowrap; transition: transform .12s, background .12s, border-color .12s; }
+.btn:hover:not(:disabled) { border-color: var(--gold); background: rgba(245,197,66,.12); }
+.btn:active:not(:disabled) { transform: scale(.97); }
+.btn.primary { background: linear-gradient(180deg, var(--gold-2), var(--gold)); color: var(--ink); border-color: var(--gold); }
+.btn.primary:hover:not(:disabled) { background: linear-gradient(180deg, #fff0b8, var(--gold-2)); }
+.btn.danger { border-color: rgba(239,74,92,.5); color: #ffb3bd; }
+.btn.sm { padding: 6px 12px; font-size: 12px; }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.in, select.in { width: 100%; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line-soft); background: rgba(0,0,0,.4); color: var(--cream); }
+.in:focus { border-color: var(--gold); outline: none; }
+.in:disabled { opacity: .45; }
+select.in option { background: #0b2a21; }
+label.f { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--muted); font-weight: 500; letter-spacing: .02em; }
+.switch { appearance: none; cursor: pointer; width: 46px; height: 26px; border-radius: 999px; border: 1px solid var(--line); background: rgba(0,0,0,.45); position: relative; flex-shrink: 0; transition: background .2s, border-color .2s; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--muted); transition: transform .22s cubic-bezier(.3,1.5,.5,1), background .2s; }
+.switch[aria-checked="true"] { background: rgba(245,197,66,.32); border-color: var(--gold); }
+.switch[aria-checked="true"]::after { transform: translateX(20px); background: var(--gold-2); }
+.switch:disabled { opacity: .4; cursor: not-allowed; }
+kbd { font: 600 11px var(--f-mono); padding: 2px 7px; border-radius: 6px; border: 1px solid rgba(255,255,255,.2); background: rgba(0,0,0,.35); color: var(--gold-2); white-space: nowrap; }
+.muted { color: var(--muted); }
+h2.h { font-family: var(--f-display); font-weight: 400; font-size: 22px; color: var(--gold-2); margin: 0 0 6px; }
+
+/* ---------- waiting for a game ---------- */
+.hero { padding: 34px; display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 28px; align-items: center; }
+.hero h1 { font-family: var(--f-display); font-weight: 400; font-size: clamp(26px, 4vw, 40px); line-height: 1.05; margin: 0 0 10px; color: var(--gold-2); }
+.hero p { margin: 0 0 18px; color: var(--muted); font-size: 15px; max-width: 560px; }
+.hero ol { margin: 0 0 22px; padding-left: 20px; color: var(--cream); line-height: 1.9; }
+.hero .cards { position: relative; width: 170px; height: 170px; }
+.hero .cards span { position: absolute; left: 40px; top: 10px; width: 92px; height: 130px; border-radius: 12px; background: var(--cream); display: grid; place-items: center; font-size: 46px; box-shadow: 0 16px 30px rgba(0,0,0,.45), inset 0 0 0 4px #fff; animation: fan 3s ease-in-out infinite alternate; }
+.hero .cards span:nth-child(1) { color: #d7263d; --r: -18deg; }
+.hero .cards span:nth-child(2) { color: #111; --r: 0deg; }
+.hero .cards span:nth-child(3) { color: #d7263d; --r: 18deg; }
+@keyframes fan { from { transform: rotate(0) } to { transform: rotate(var(--r)) translateY(4px) } }
+.waiting { display: inline-flex; gap: 10px; align-items: center; padding: 10px 14px; border-radius: 12px; background: rgba(255,181,71,.1); border: 1px solid rgba(255,181,71,.3); margin-bottom: 18px; }
+
+/* ---------- mods ---------- */
+.toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+.party { display: inline-flex; align-items: center; gap: 10px; padding: 6px 14px 6px 8px; border-radius: 999px; border: 1px solid var(--line-soft); background: rgba(0,0,0,.3); }
+.party b { font-family: var(--f-display); font-weight: 400; font-size: 13px; letter-spacing: .04em; }
+.party small { color: var(--muted); min-width: 3ch; font-variant-numeric: tabular-nums; }
+.party.on { border-color: var(--gold); background: linear-gradient(90deg, rgba(123,63,228,.35), rgba(215,38,61,.3), rgba(245,166,35,.3)); background-size: 200% 100%; animation: shimmer 3s linear infinite; }
+@keyframes shimmer { to { background-position: -200% 0 } }
+.cat { display: flex; align-items: center; gap: 10px; margin: 18px 0 10px; font-family: var(--f-display); font-weight: 400; font-size: 14px; letter-spacing: .06em; color: var(--muted); }
+.cat::after { content: ""; flex: 1; height: 1px; background: var(--line-soft); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 12px; }
+.mod { position: relative; display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 18px; background: var(--panel); border: 1px solid var(--line-soft); transition: border-color .2s, box-shadow .2s, transform .15s; }
+.mod:hover { border-color: var(--line); }
+.mod.on { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold), 0 10px 30px rgba(245,197,66,.12); }
+.mod.flash { animation: flash .6s; }
+@keyframes flash { 30% { transform: scale(1.02); box-shadow: 0 0 0 3px var(--gold-2), 0 0 40px rgba(245,197,66,.5) } }
+.mh { display: flex; align-items: center; gap: 8px; }
+.mh b { flex: 1; font-size: 16px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mv { display: flex; align-items: center; gap: 12px; }
+.val { flex: 1; font-family: var(--f-display); font-size: 28px; line-height: 1; color: var(--cream); font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mod.on .val { color: var(--gold-2); }
+.val.none { color: var(--muted); font-size: 22px; }
+.lock { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; cursor: pointer; }
+.mod.on .lock { color: var(--gold-2); }
+.mset { display: flex; gap: 8px; }
+.mset .in { padding: 7px 10px; }
+.presets { display: flex; gap: 6px; flex-wrap: wrap; }
+.chipbtn { appearance: none; cursor: pointer; padding: 6px 12px; border-radius: 999px; border: 2px dashed rgba(247,239,225,.35); background: rgba(0,0,0,.25); font-weight: 700; font-size: 12px; transition: transform .15s, border-color .15s, background .15s; }
+.chipbtn:hover:not(:disabled) { border-color: var(--gold); background: rgba(245,197,66,.14); transform: translateY(-1px) rotate(-2deg); }
+.chipbtn:disabled, .mod.stale .mset .btn, .mod.stale .switch { opacity: .4; cursor: not-allowed; }
+.where { font: 11px var(--f-mono); color: var(--muted); opacity: .8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stale-note { margin: 0; font-size: 12px; color: var(--amber); }
+.empty { padding: 28px; text-align: center; }
+.empty p { color: var(--muted); max-width: 520px; margin: 0 auto 16px; }
+
+/* ---------- value finder ---------- */
+.finder { display: grid; grid-template-columns: minmax(0, 380px) minmax(0, 1fr); gap: 16px; align-items: start; }
+.ff { padding: 20px; display: flex; flex-direction: column; gap: 14px; position: sticky; top: 80px; }
+.guide { margin: 0; padding-left: 18px; color: var(--muted); font-size: 13px; line-height: 1.7; }
+.guide b { color: var(--cream); }
+.frow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.frow .wide { grid-column: 1 / -1; }
+.fact { display: flex; gap: 8px; flex-wrap: wrap; }
+.fact .btn { flex: 1; }
+.bar { height: 8px; border-radius: 999px; background: rgba(0,0,0,.45); overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: repeating-linear-gradient(-45deg, var(--gold) 0 10px, var(--gold-2) 10px 20px); transition: width .2s; }
+.fstatus { margin: 0; font-size: 13px; color: var(--muted); min-height: 1.4em; }
+.fstatus b { color: var(--gold-2); font-size: 16px; }
+.res { padding: 6px; overflow: auto; }
+.res table { width: 100%; border-collapse: collapse; }
+.res th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); font-weight: 500; padding: 10px 12px; }
+.res td { padding: 6px 12px; border-top: 1px solid var(--line-soft); }
+.res tr:hover td { background: rgba(255,255,255,.03); }
+.res td.v { font-weight: 700; font-variant-numeric: tabular-nums; }
+.res td.v.changed { color: var(--gold-2); }
+.res .ed { width: 110px; padding: 5px 8px; border-radius: 8px; }
+.res-empty { padding: 40px 20px; text-align: center; color: var(--muted); }
+
+/* ---------- settings ---------- */
+.rows { padding: 6px; max-width: 760px; }
+.row { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 14px 16px; border-radius: 14px; }
+.row + .row { border-top: 1px solid var(--line-soft); }
+.row .rl { display: flex; flex-direction: column; gap: 3px; }
+.row .rl b { font-weight: 500; font-size: 15px; }
+.row .rl small { color: var(--muted); }
+.row .ctl { display: flex; gap: 8px; align-items: center; }
+.steam { flex-direction: column; align-items: stretch; }
+.steam ol { margin: 4px 0 0; padding-left: 18px; color: var(--muted); font-size: 13px; line-height: 1.7; }
+.steam ol b { color: var(--cream); }
+.cmd { display: flex; gap: 8px; align-items: center; }
+.cmd code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; padding: 10px 12px; border-radius: 10px; background: rgba(0,0,0,.45); border: 1px dashed var(--line); font: 12px var(--f-mono); color: var(--gold-2); user-select: all; -webkit-user-select: all; }
+.note { max-width: 760px; margin-top: 16px; padding: 16px 18px; color: var(--muted); font-size: 13px; }
+.note b { color: var(--cream); }
+
+/* ---------- modals ---------- */
+.modal { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; padding: 16px; background: rgba(0,0,0,.6); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.modal .box { width: min(520px, 100%); max-height: calc(100vh - 32px); overflow: auto; padding: 22px; display: flex; flex-direction: column; gap: 14px; animation: pop .25s cubic-bezier(.3,1.5,.5,1); }
+@keyframes pop { from { transform: scale(.92); opacity: 0 } }
+.mhead { display: flex; align-items: center; gap: 10px; }
+.mhead h2 { flex: 1; margin: 0; }
+.plist { display: flex; flex-direction: column; gap: 2px; max-height: 50vh; overflow: auto; margin: 0 -6px; }
+.prow { appearance: none; border: 0; background: transparent; cursor: pointer; display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; border-radius: 10px; text-align: left; }
+.prow:hover, .prow:focus-visible { background: rgba(245,197,66,.12); }
+.prow b { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prow.hint b { color: var(--gold-2); }
+details.adv summary { cursor: pointer; color: var(--muted); font-size: 13px; padding: 4px 0; }
+details.adv[open] summary { margin-bottom: 10px; }
+.hk { cursor: pointer; caret-color: transparent; }
+.mfoot { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; margin-top: 4px; }
+.mfoot .grow { flex: 1; }
+
+/* ---------- toasts ---------- */
+#toasts { position: fixed; right: 16px; bottom: 16px; z-index: 20; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; pointer-events: none; }
+.toast { display: flex; gap: 10px; align-items: center; max-width: min(380px, calc(100vw - 32px)); padding: 10px 16px 10px 10px; border-radius: 14px; background: linear-gradient(135deg, #1b1b1b, #0c2a21); border: 1px solid var(--line); box-shadow: 0 14px 34px rgba(0,0,0,.5); animation: tin .35s cubic-bezier(.3,1.4,.5,1), tout .35s 3.6s forwards; }
+.toast i { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0; font-style: normal; font-weight: 700; background: var(--gold); color: var(--ink); }
+.toast.error { border-color: rgba(239,74,92,.6); }
+.toast.error i { background: var(--red); color: #fff; }
+.toast.party { border-color: #b37cff; }
+.toast.party i { background: linear-gradient(135deg, #7b3fe4, #d7263d); color: #fff; }
+@keyframes tin { from { transform: translateX(120%) } }
+@keyframes tout { to { transform: translateX(120%); opacity: 0 } }
+
+/* ---------- compact overlay ---------- */
+.compact .tabs, .compact .brand b, .compact .toolbar .btn, .compact .where, .compact .mset, .compact #tab-finder, .compact #tab-settings { display: none !important; }
+.compact #tab-mods { display: block !important; }
+.compact main { padding: 10px; }
+.compact .top { padding: 8px 10px; }
+.compact .grid { grid-template-columns: 1fr; gap: 8px; }
+.compact .mod { padding: 10px 12px; gap: 8px; border-radius: 14px; }
+.compact .val { font-size: 20px; }
+.compact .cat { margin: 10px 0 6px; }
+
+@media (max-width: 760px) {
+  .finder { grid-template-columns: 1fr; }
+  .ff { position: static; }
+  .hero { grid-template-columns: 1fr; padding: 22px; }
+  .hero .cards { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="chip" viewBox="0 0 100 100">
+    <circle cx="50" cy="50" r="48" fill="currentColor"/>
+    <g fill="#f7efe1"><rect x="43" y="2" width="14" height="17" rx="2"/><rect x="43" y="2" width="14" height="17" rx="2" transform="rotate(60 50 50)"/><rect x="43" y="2" width="14" height="17" rx="2" transform="rotate(120 50 50)"/><rect x="43" y="2" width="14" height="17" rx="2" transform="rotate(180 50 50)"/><rect x="43" y="2" width="14" height="17" rx="2" transform="rotate(240 50 50)"/><rect x="43" y="2" width="14" height="17" rx="2" transform="rotate(300 50 50)"/></g>
+    <circle cx="50" cy="50" r="30" fill="none" stroke="#f7efe1" stroke-width="3" stroke-dasharray="5 4"/>
+    <circle cx="50" cy="50" r="23" fill="#000" fill-opacity=".22"/>
+  </symbol>
+</svg>
+
+<header class="top">
+  <div class="brand"><svg aria-hidden="true"><use href="#chip"/></svg><b>House Edge</b></div>
+  <button class="pill" id="game-pill" title="Pick a game"><i class="dot"></i><span id="game-txt">Waiting for a game&hellip;</span></button>
+  <div class="grow"></div>
+  <button class="icon" id="compact-btn" title="Compact overlay (just the mods)" aria-label="Toggle compact overlay">&#8690;</button>
+</header>
+
+<nav class="tabs" role="tablist">
+  <button class="tab" role="tab" data-tab="mods" aria-selected="true">Mods</button>
+  <button class="tab" role="tab" data-tab="finder" aria-selected="false">Value finder</button>
+  <button class="tab" role="tab" data-tab="settings" aria-selected="false">Settings</button>
+</nav>
+
+<main>
+  <!-- ======================= MODS ======================= -->
+  <section id="tab-mods">
+    <div class="panel hero" id="no-game">
+      <div>
+        <h1>Deal yourself in.</h1>
+        <p>House Edge sits outside your game and changes it while you play: unlimited chips, frozen timers, whatever the game keeps in memory. Single-player only.</p>
+        <div class="waiting" id="waiting" hidden><i class="dot"></i><span>Waiting for <b id="waiting-name"></b> to start. House Edge will join on its own.</span></div>
+        <ol>
+          <li>Start the game from Steam.</li>
+          <li>Pick it from the list below. House Edge remembers it and joins automatically next time.</li>
+          <li>Use the <b>Value finder</b> to turn any number on screen into a mod.</li>
+        </ol>
+        <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn primary" id="pick-btn">Pick the game</button><button class="btn" data-goto="settings">Start it from Steam instead</button></div>
+      </div>
+      <div class="cards" aria-hidden="true"><span>&#9829;</span><span>&#9824;</span><span>&#9830;</span></div>
+    </div>
+
+    <div id="mods-area" hidden>
+      <div class="toolbar">
+        <div class="party" id="party" title="Every few seconds, Party Mode presses a random quick button on a random mod">
+          <button class="switch" role="switch" aria-checked="false" id="party-sw" aria-label="Party Mode"></button>
+          <b>Party Mode</b><small id="party-cd"></small>
+        </div>
+        <div class="grow"></div>
+        <button class="btn" id="add-btn">+ Add by address</button>
+        <label class="btn" tabindex="0">Import Cheat Engine table<input type="file" id="ct-file" accept=".ct,.CT,.xml" hidden></label>
+      </div>
+      <div id="mods"></div>
+      <div class="panel empty" id="mods-empty" hidden>
+        <h2 class="h">No mods yet</h2>
+        <p>Turn any number in the game into a mod in about a minute. Open the <b>Value finder</b>, search for a number you can see (like your chips), change it in the game, search again, then add it here.</p>
+        <button class="btn primary" data-goto="finder">Open the Value finder</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= VALUE FINDER ======================= -->
+  <section id="tab-finder" hidden>
+    <div class="finder">
+      <div class="panel ff">
+        <h2 class="h">Value finder</h2>
+        <ol class="guide">
+          <li>Find a number in the game, like <b>500 chips</b>.</li>
+          <li>Type it below and press <b>First scan</b>.</li>
+          <li>Change it in the game: win, lose or spend some.</li>
+          <li>Type the new number and press <b>Next scan</b>. Repeat until a few results are left.</li>
+          <li>Press <b>+ Mod</b> on the one that matches.</li>
+        </ol>
+        <div class="frow">
+          <label class="f wide">Value<input class="in" id="f-value" inputmode="decimal" placeholder="e.g. 500" autocomplete="off"></label>
+          <label class="f">Search for<select class="in" id="f-mode"></select></label>
+          <label class="f">Value type<select class="in" id="f-type">
+            <option value="int32">Whole number (4 bytes)</option>
+            <option value="float">Decimal (float)</option>
+            <option value="double">Decimal (double)</option>
+            <option value="int64">Big number (8 bytes)</option>
+            <option value="int16">Small number (2 bytes)</option>
+            <option value="byte">Tiny number (byte)</option>
+          </select></label>
+        </div>
+        <div class="fact">
+          <button class="btn primary" id="f-first">First scan</button>
+          <button class="btn primary" id="f-next" hidden>Next scan</button>
+          <button class="btn" id="f-new" hidden>New scan</button>
+        </div>
+        <div class="bar" id="f-bar" hidden><i></i></div>
+        <p class="fstatus" id="f-status">Health bars and timers are usually decimals. Money and counters are usually whole numbers.</p>
+      </div>
+      <div class="panel res" id="f-results">
+        <div class="res-empty" id="f-empty">Results show up here after a scan.</div>
+        <table id="f-table" hidden>
+          <thead><tr><th>Address</th><th>Value now</th><th>Before</th><th>Change it</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= SETTINGS ======================= -->
+  <section id="tab-settings" hidden>
+    <div class="panel rows">
+      <div class="row"><span class="rl"><b>Join automatically</b><small id="s-auto-txt">Pick a game once and House Edge joins it whenever it starts.</small></span><span class="ctl"><button class="btn sm" id="s-forget">Forget game</button></span></div>
+      <div class="row steam">
+        <span class="rl"><b>Start with the game from Steam</b><small>House Edge starts the game, joins it, and closes when you quit. One click in Steam does it all.</small></span>
+        <div class="cmd"><code id="s-launch"></code><button class="btn sm" id="s-copy">Copy</button></div>
+        <ol>
+          <li>In your Steam <b>Library</b>, right-click the game and choose <b>Properties</b>.</li>
+          <li>Under <b>General</b>, paste the line above into <b>Launch Options</b>.</li>
+          <li>Press <b>Play</b> as usual.</li>
+        </ol>
+      </div>
+      <div class="row"><span class="rl"><b>Show or hide the panel</b><small>Hold the keys together in the game to pop the panel up. Use windowed or borderless fullscreen.</small></span><input class="in hk" id="s-panel-hk" readonly style="width:170px" aria-label="Show or hide panel hotkey"></div>
+      <div class="row"><span class="rl"><b>Keep the panel on top of the game</b><small>Works in windowed and borderless modes</small></span><button class="switch" role="switch" data-set="onTop"></button></div>
+      <div class="row"><span class="rl"><b>Hotkeys</b><small id="s-hk-txt">Toggle a mod's lock from inside the game</small></span><button class="switch" role="switch" data-set="hotkeys"></button></div>
+      <div class="row"><span class="rl"><b>Sounds</b><small>Chip clinks when things happen</small></span><button class="switch" role="switch" data-set="sounds"></button></div>
+      <div class="row"><span class="rl"><b>Party Mode timer</b><small>How often Party Mode does something random</small></span><select class="in" id="s-party" style="width:auto"><option value="10">Every 10 s</option><option value="20">Every 20 s</option><option value="30">Every 30 s</option><option value="60">Every minute</option></select></div>
+    </div>
+    <div class="panel note">
+      <b>Play fair:</b> House Edge is for single-player and local games. Don't use it online against other people or in games with anti-cheat. It spoils the game for others and can get your account banned.<br><br>
+      Mods are saved per game in House Edge's settings folder. Values found by scanning only last until the game closes, unless they live inside the game's files, like <span class="mono">GameAssembly.dll+1A2B</span>.
+    </div>
+  </section>
+</main>
+
+<!-- Process picker -->
+<div class="modal" id="picker" hidden>
+  <div class="box panel" role="dialog" aria-modal="true" aria-labelledby="picker-t">
+    <div class="mhead"><h2 class="h" id="picker-t">Pick your game</h2><button class="icon sm" data-close aria-label="Close">&#10005;</button></div>
+    <input class="in" id="p-search" placeholder="Search running programs&hellip;" autocomplete="off">
+    <div class="plist" id="plist"></div>
+    <p class="muted" style="margin:0;font-size:12px">Not listed? Make sure the game is running, then search again. If joining fails, run House Edge as administrator.</p>
+  </div>
+</div>
+
+<!-- Mod editor -->
+<div class="modal" id="editor" hidden>
+  <div class="box panel" role="dialog" aria-modal="true" aria-labelledby="ed-t">
+    <div class="mhead"><h2 class="h" id="ed-t">New mod</h2><button class="icon sm" data-close aria-label="Close">&#10005;</button></div>
+    <label class="f">Name<input class="in" id="e-name" maxlength="60" placeholder="e.g. Chips"></label>
+    <div class="frow">
+      <label class="f">Group<input class="in" id="e-cat" maxlength="40" placeholder="Mods"></label>
+      <label class="f">Hotkey (toggles lock)<input class="in hk" id="e-hk" placeholder="Click, then press a key" readonly></label>
+    </div>
+    <label class="f">Quick buttons<input class="in" id="e-presets" placeholder="+100, x2, 9999"><small class="muted">Up to 4. <b>+100</b> adds, <b>x2</b> doubles, a plain number sets it.</small></label>
+    <div class="row" style="padding:0"><span class="rl"><b>Include in Party Mode</b></span><button class="switch" role="switch" id="e-party" aria-checked="true"></button></div>
+    <details class="adv" id="e-adv">
+      <summary>Address and type</summary>
+      <div class="frow">
+        <label class="f">Value type<select class="in" id="e-type">
+          <option value="int32">Whole number (4 bytes)</option><option value="float">Decimal (float)</option><option value="double">Decimal (double)</option>
+          <option value="int64">Big number (8 bytes)</option><option value="int16">Small number (2 bytes)</option><option value="byte">Tiny number (byte)</option>
+        </select></label>
+        <label class="f">Module (optional)<input class="in mono" id="e-module" placeholder="GameAssembly.dll"></label>
+        <label class="f">Address or offset (hex)<input class="in mono" id="e-base" placeholder="1A2B3C"></label>
+        <label class="f">Pointer offsets (hex)<input class="in mono" id="e-offs" placeholder="10, 2C"></label>
+      </div>
+    </details>
+    <div class="mfoot">
+      <button class="btn danger" id="e-del">Delete</button>
+      <div class="grow"></div>
+      <button class="btn" data-close>Cancel</button>
+      <button class="btn primary" id="e-save">Save mod</button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts" aria-live="polite"></div>
+
+<script>
+(() => {
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const TOKEN = new URLSearchParams(location.search).get('t') || '';
+const TYPE_LABEL = { int32: '4 bytes', float: 'float', double: 'double', int64: '8 bytes', int16: '2 bytes', byte: 'byte' };
+const isFloat = t => t === 'float' || t === 'double';
+const ls = { get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+
+async function api(path, body) {
+  const opts = body === undefined ? { headers: { 'X-Token': TOKEN } } : { method: 'POST', headers: { 'X-Token': TOKEN, 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
+  const r = await fetch(path, opts);
+  const j = await r.json().catch(() => ({ error: 'House Edge stopped responding.' }));
+  if (!r.ok) throw new Error(j.error || 'Something went wrong.');
+  return j;
+}
+const run = fn => async (...a) => { try { return await fn(...a); } catch (e) { toast(e.message, 'error'); sfx.err(); } };
+
+/* ---------- sound ---------- */
+let AC = null;
+function tone(f, d, type = 'triangle', v = .1, delay = 0) {
+  if (!S.settings?.sounds) return;
+  try {
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    const t = AC.currentTime + delay, o = AC.createOscillator(), g = AC.createGain();
+    o.type = type; o.frequency.value = f;
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(v, t + .01); g.gain.exponentialRampToValueAtTime(.0001, t + d);
+    o.connect(g).connect(AC.destination); o.start(t); o.stop(t + d + .02);
+  } catch {}
+}
+const sfx = {
+  clink() { tone(2600, .12); tone(3900, .09, 'sine', .06, .015); },
+  on() { tone(660, .1); tone(990, .14, 'triangle', .1, .07); },
+  off() { tone(700, .1); tone(470, .14, 'triangle', .1, .07); },
+  err() { tone(220, .2, 'square', .05); },
+  win() { [523, 659, 784, 1047].forEach((f, i) => tone(f, .25, 'triangle', .1, i * .07)); },
+};
+
+/* ---------- toasts ---------- */
+function toast(text, kind = 'ok') {
+  const el = document.createElement('div');
+  el.className = 'toast ' + kind;
+  const icon = { ok: '&#10003;', error: '!', party: '&#9733;', attach: '&#9824;', detach: '&#8211;', hotkey: '&#9000;', launch: '&#9654;' }[kind] || '&#10003;';
+  el.innerHTML = `<i>${icon}</i><span>${esc(text)}</span>`;
+  $('#toasts').append(el);
+  setTimeout(() => el.remove(), 4100);
+}
+
+/* ---------- state ---------- */
+let S = { attached: false, mods: [], settings: {}, scan: {} };
+let seq = 0, firstPoll = true, modsSig = '', tab = ls.get('he.tab', 'mods');
+
+async function poll() {
+  try {
+    const st = await api('/api/state?since=' + seq);
+    const wasAttached = S.attached;
+    S = st;
+    if (!firstPoll) for (const e of st.events) {
+      toast(e.text, e.kind === 'error' ? 'error' : e.kind);
+      if (e.kind === 'attach') sfx.win(); else if (e.kind === 'hotkey') (e.on ? sfx.on : sfx.off)(); else if (e.kind === 'error') sfx.err();
+    }
+    seq = st.seq; firstPoll = false;
+    render(wasAttached !== st.attached);
+  } catch (e) {
+    $('#game-txt').textContent = 'House Edge stopped. Restart it.';
+  }
+  setTimeout(poll, 400);
+}
+
+function render(attachChanged) {
+  document.body.classList.toggle('attached', S.attached);
+  $('#game-txt').textContent = S.attached ? `${S.game.name} · ${S.game.bits}-bit` : (S.settings.autoAttach ? `Waiting for ${S.settings.autoAttach}…` : 'Waiting for a game…');
+  $('#no-game').hidden = S.attached;
+  $('#mods-area').hidden = !S.attached;
+  $('#waiting').hidden = !S.settings.autoAttach;
+  $('#waiting-name').textContent = S.settings.autoAttach || '';
+  renderMods();
+  renderSettings();
+  renderFinderStatus();
+  if (attachChanged && !S.attached) partyOff();
+}
+
+/* ---------- mods ---------- */
+function fmt(v, t) {
+  if (v === null || v === undefined) return '—';
+  return isFloat(t) ? (+v).toLocaleString(undefined, { maximumFractionDigits: 3 }) : (+v).toLocaleString();
+}
+const fmtPreset = p => { p = String(p).trim(); return /^x/i.test(p) ? '×' + p.slice(1) : /^[+-]/.test(p) ? p : '= ' + p; };
+
+function renderMods() {
+  const sig = JSON.stringify(S.mods.map(m => [m.id, m.name, m.category, m.locked, m.hotkey, m.stale, m.presets, m.where, m.type]));
+  if (sig !== modsSig) {
+    modsSig = sig;
+    const groups = new Map();
+    for (const m of S.mods) { if (!groups.has(m.category)) groups.set(m.category, []); groups.get(m.category).push(m); }
+    const focusId = document.activeElement?.closest?.('.mod')?.dataset.id;
+    const focusSel = document.activeElement?.dataset?.act;
+    const typed = Object.fromEntries($$('.mod').map(c => [c.dataset.id, $('[data-in]', c)?.value || '']));
+    $('#mods').innerHTML = [...groups].map(([cat, list]) => `<h3 class="cat">${esc(cat)}</h3><div class="grid">${list.map(card).join('')}</div>`).join('');
+    for (const [id, v] of Object.entries(typed)) { const i = $(`.mod[data-id="${id}"] [data-in]`); if (i) i.value = v; }
+    if (focusId && focusSel) $(`.mod[data-id="${focusId}"] [data-act="${focusSel}"]`)?.focus();
+    $('#mods-empty').hidden = S.mods.length > 0;
+  }
+  for (const m of S.mods) {
+    const el = $(`.mod[data-id="${m.id}"] .val`);
+    if (!el) continue;
+    const txt = m.stale ? 'Not found' : fmt(m.value, m.type);
+    if (el.textContent !== txt) el.textContent = txt;
+    el.classList.toggle('none', m.value === null || m.value === undefined);
+  }
+}
+function card(m) {
+  return `<article class="mod${m.locked ? ' on' : ''}${m.stale ? ' stale' : ''}" data-id="${m.id}">
+    <div class="mh"><b title="${esc(m.name)}">${esc(m.name)}</b>${m.hotkey ? `<kbd title="Hotkey: toggles the lock">${esc(m.hotkey)}</kbd>` : ''}<button class="icon sm" data-act="edit" title="Edit" aria-label="Edit ${esc(m.name)}">&#9998;</button></div>
+    <div class="mv"><span class="val">—</span><label class="lock"><button class="switch" role="switch" aria-checked="${m.locked}" data-act="lock" aria-label="Lock ${esc(m.name)}"${m.stale ? ' disabled' : ''}></button>Lock</label></div>
+    ${m.stale ? '<p class="stale-note">Found in an earlier run of the game. Find it again in the Value finder.</p>' : ''}
+    <div class="presets">${m.presets.map(p => `<button class="chipbtn" data-act="preset" data-p="${esc(p)}"${m.stale ? ' disabled' : ''}>${esc(fmtPreset(p))}</button>`).join('')}</div>
+    <div class="mset"><input class="in" data-in placeholder="Set to…" inputmode="decimal" aria-label="New value for ${esc(m.name)}"><button class="btn sm" data-act="set"${m.stale ? ' disabled' : ''}>Set</button></div>
+    <div class="where" title="${esc(m.where)}">${esc(m.where)} · ${TYPE_LABEL[m.type]}</div>
+  </article>`;
+}
+function flash(id) { const c = $(`.mod[data-id="${id}"]`); if (c) { c.classList.remove('flash'); void c.offsetWidth; c.classList.add('flash'); } }
+
+$('#mods').addEventListener('click', run(async e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const c = b.closest('.mod'), id = c.dataset.id, m = S.mods.find(x => x.id === id);
+  if (!m) return;
+  const act = b.dataset.act;
+  if (act === 'edit') return openEditor(m);
+  if (act === 'lock') {
+    const on = b.getAttribute('aria-checked') !== 'true';
+    await api('/api/mod/lock', { id, on });
+    (on ? sfx.on : sfx.off)(); flash(id);
+    m.locked = on; modsSig = ''; renderMods();
+    return;
+  }
+  if (act === 'preset') { const r = await api('/api/mod/set', { id, preset: b.dataset.p }); sfx.clink(); flash(id); toast(`${m.name} → ${fmt(r.value, m.type)}`); return; }
+  if (act === 'set') {
+    const inp = $('[data-in]', c), v = inp.value.trim(); if (!v) { inp.focus(); return; }
+    const r = await api('/api/mod/set', { id, value: Number(v.replace(/,/g, '')) }); inp.value = ''; sfx.clink(); flash(id); toast(`${m.name} → ${fmt(r.value, m.type)}`);
+  }
+}));
+$('#mods').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('[data-in]')) $('[data-act="set"]', e.target.closest('.mod')).click(); });
+
+/* ---------- Party Mode ---------- */
+let partyTimer = null, partyNext = 0;
+function partyOff() { clearInterval(partyTimer); partyTimer = null; $('#party').classList.remove('on'); $('#party-sw').setAttribute('aria-checked', 'false'); $('#party-cd').textContent = ''; }
+$('#party-sw').addEventListener('click', () => {
+  if (partyTimer) { partyOff(); sfx.off(); return; }
+  if (!S.mods.some(m => m.party && !m.stale && m.presets.length)) { toast('Add a mod first. Party Mode needs something to play with.', 'error'); sfx.err(); return; }
+  $('#party').classList.add('on'); $('#party-sw').setAttribute('aria-checked', 'true'); sfx.win();
+  toast('Party Mode on. Expect the unexpected.', 'party');
+  partyNext = Date.now() + (S.settings.partyEvery || 20) * 1000;
+  partyTimer = setInterval(partyTick, 250);
+});
+async function partyTick() {
+  const left = Math.max(0, Math.ceil((partyNext - Date.now()) / 1000));
+  $('#party-cd').textContent = left + 's';
+  if (Date.now() < partyNext) return;
+  partyNext = Date.now() + (S.settings.partyEvery || 20) * 1000;
+  const pool = S.mods.filter(m => m.party && !m.stale && m.presets.length && m.value !== null);
+  if (!pool.length) return;
+  const m = pool[Math.floor(Math.random() * pool.length)], p = m.presets[Math.floor(Math.random() * m.presets.length)];
+  try { const r = await api('/api/mod/set', { id: m.id, preset: p }); toast(`Party Mode: ${m.name} ${fmtPreset(p)} → ${fmt(r.value, m.type)}`, 'party'); sfx.win(); flash(m.id); } catch {}
+}
+
+/* ---------- tabs ---------- */
+function setTab(t) {
+  tab = t; ls.set('he.tab', t);
+  $$('.tab').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === t)));
+  for (const id of ['mods', 'finder', 'settings']) $('#tab-' + id).hidden = id !== t;
+  if (t === 'finder') refreshResults();
+}
+$$('.tab').forEach(b => b.addEventListener('click', () => { setTab(b.dataset.tab); sfx.clink(); }));
+document.addEventListener('click', e => { const g = e.target.closest('[data-goto]'); if (g) setTab(g.dataset.goto); });
+$('#compact-btn').addEventListener('click', () => { const on = !document.body.classList.contains('compact'); document.body.classList.toggle('compact', on); ls.set('he.compact', on); sfx.clink(); });
+
+/* ---------- process picker ---------- */
+let procs = [];
+const LIKELY_NOT_GAMES = /^(svchost|system|registry|smss|csrss|wininit|winlogon|services|lsass|dwm|explorer|runtimebroker|searchhost|sihost|taskhostw|ctfmon|conhost|fontdrvhost|audiodg|spoolsv|steamwebhelper|steamservice|gameoverlayui|msedge|msedgewebview2|chrome|firefox|discord|python|pythonw|bash|sh|systemd|kworker|house-edge)/i;
+async function openPicker() {
+  $('#picker').hidden = false; $('#p-search').value = ''; $('#p-search').focus();
+  $('#plist').innerHTML = '<p class="muted" style="padding:10px 12px;margin:0">Looking for running programs…</p>';
+  procs = await api('/api/processes').catch(() => []);
+  renderProcs();
+}
+function renderProcs() {
+  const q = $('#p-search').value.trim().toLowerCase();
+  const list = procs.filter(p => !q || p.name.toLowerCase().includes(q));
+  list.sort((a, b) => (/all.?in/i.test(b.name) - /all.?in/i.test(a.name)) || (LIKELY_NOT_GAMES.test(a.name) - LIKELY_NOT_GAMES.test(b.name)) || a.name.localeCompare(b.name));
+  $('#plist').innerHTML = list.length ? list.slice(0, 300).map(p => `<button class="prow${/all.?in/i.test(p.name) ? ' hint' : ''}" data-pid="${p.pid}" data-name="${esc(p.name)}"><b>${esc(p.name)}</b><span class="mono muted">${p.pid}</span></button>`).join('')
+    : '<p class="muted" style="padding:10px 12px;margin:0">Nothing matches. Is the game running?</p>';
+}
+$('#p-search').addEventListener('input', renderProcs);
+$('#plist').addEventListener('click', run(async e => {
+  const b = e.target.closest('[data-pid]'); if (!b) return;
+  $('#plist').innerHTML = `<p class="muted" style="padding:10px 12px;margin:0">Joining ${esc(b.dataset.name)}…</p>`;
+  try { await api('/api/attach', { pid: +b.dataset.pid, name: b.dataset.name }); closeModals(); }
+  catch (err) { renderProcs(); throw err; }
+}));
+$('#pick-btn').addEventListener('click', openPicker);
+$('#game-pill').addEventListener('click', openPicker);
+
+/* ---------- mod editor ---------- */
+let editing = null; // {mode: 'edit'|'new'|'address', mod?, address?}
+function openEditor(mod, address) {
+  editing = mod ? { mode: 'edit', mod } : address !== undefined ? { mode: 'address', address } : { mode: 'new' };
+  const m = mod || {};
+  const t = m.type || (address !== undefined ? S.scan.type : 'int32');
+  $('#ed-t').textContent = mod ? 'Edit mod' : 'New mod';
+  $('#e-name').value = m.name || '';
+  $('#e-cat').value = m.category || 'Mods';
+  $('#e-hk').value = $('#e-hk').dataset.saved = m.hotkey || '';
+  $('#e-presets').value = (m.presets || (isFloat(t) ? ['+10', 'x2', '999'] : ['+100', 'x2', '9999'])).join(', ');
+  $('#e-party').setAttribute('aria-checked', String(m.party ?? true));
+  $('#e-type').value = t;
+  $('#e-module').value = m.module || '';
+  $('#e-base').value = address !== undefined ? address.toString(16).toUpperCase() : (m.base !== undefined ? m.base.toString(16).toUpperCase() : '');
+  $('#e-offs').value = (m.offsets || []).map(o => o.toString(16).toUpperCase()).join(', ');
+  $('#e-adv').open = editing.mode === 'new';
+  $$('#e-adv input, #e-adv select').forEach(i => i.disabled = editing.mode === 'address');
+  $('#e-del').hidden = !mod;
+  $('#editor').hidden = false;
+  $('#e-name').focus();
+}
+$('#add-btn').addEventListener('click', () => openEditor());
+$('#e-party').addEventListener('click', e => e.currentTarget.setAttribute('aria-checked', String(e.currentTarget.getAttribute('aria-checked') !== 'true')));
+const keyName = e => /^F([1-9]|1[0-2])$/.test(e.key) ? e.key
+  : /^Numpad\d$/.test(e.code) ? 'Num' + e.code.slice(6)
+  : /^Digit\d$/.test(e.code) ? e.code.slice(5)
+  : /^Key[A-Z]$/.test(e.code) ? e.code.slice(3) : null;
+/* Hotkey picker: press one key, or hold two together (like Q+E), with Ctrl/Shift/Alt if you like.
+   The combo is saved when you let go of everything. Backspace or Delete clears it. */
+function hotkeyCapture(input, onDone) {
+  let held = [], best = null, mods = [];
+  input.addEventListener('keydown', e => {
+    e.preventDefault();
+    if (e.repeat) return;
+    if (['Backspace', 'Delete'].includes(e.key) && !held.length) { held = []; best = null; input.value = ''; onDone(''); return; }
+    if (e.key === 'Escape') { held = []; best = null; input.blur(); return; }
+    const k = keyName(e);
+    mods = [e.ctrlKey && 'Ctrl', e.shiftKey && 'Shift', e.altKey && 'Alt'].filter(Boolean);
+    if (k && !held.includes(k) && held.length < 2) held.push(k);
+    if (held.length) { best = [...mods, ...held].join('+'); input.value = best; }
+  });
+  input.addEventListener('keyup', e => {
+    const k = keyName(e);
+    held = held.filter(x => x !== k);
+    if (held.length || !best) return;
+    const c = best; best = null;
+    if (!/[+]/.test(c) && /^[A-Z0-9]$/.test(c)) {
+      toast('One plain letter or number would fire every time you press it in the game. Hold two together (like Q+E), add Ctrl, Shift or Alt, or use F1 to F12.', 'error'); sfx.err();
+      input.value = input.dataset.saved || ''; return;
+    }
+    onDone(c);
+  });
+  input.addEventListener('blur', () => { held = []; best = null; });
+}
+hotkeyCapture($('#e-hk'), c => { $('#e-hk').value = c; $('#e-hk').dataset.saved = c; });
+hotkeyCapture($('#s-panel-hk'), run(async c => {
+  const ph = $('#s-panel-hk');
+  await api('/api/settings', { panelHotkey: c }); S.settings.panelHotkey = c; ph.value = c; ph.dataset.saved = c; ph.blur(); sfx.clink();
+  toast(c ? `Press ${c} in the game to show or hide the panel.` : 'Panel hotkey turned off.');
+}));
+$('#s-copy').addEventListener('click', run(async () => {
+  const t = $('#s-launch').textContent;
+  try { await navigator.clipboard.writeText(t); }
+  catch { const r = document.createRange(); r.selectNodeContents($('#s-launch')); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); document.execCommand('copy'); }
+  sfx.clink(); toast('Copied. Paste it into the game\u2019s Steam Launch Options.');
+}));
+const hex = s => { const v = String(s).trim().replace(/^0x/i, ''); if (!/^[0-9a-f]+$/i.test(v)) throw new Error(`"${s}" isn’t a hex number.`); return parseInt(v, 16); };
+$('#e-save').addEventListener('click', run(async () => {
+  const body = {
+    name: $('#e-name').value.trim() || 'New mod',
+    category: $('#e-cat').value.trim() || 'Mods',
+    hotkey: $('#e-hk').value || null,
+    presets: $('#e-presets').value.split(',').map(s => s.trim()).filter(Boolean).slice(0, 4),
+    party: $('#e-party').getAttribute('aria-checked') === 'true',
+    type: $('#e-type').value,
+  };
+  if (editing.mode === 'address') {
+    await api('/api/mod/add', { ...body, address: editing.address });
+    toast(`${body.name} added. Lock it or hit a quick button.`); sfx.win(); setTab('mods');
+  } else {
+    if (!$('#e-base').value.trim()) throw new Error('Enter an address or offset.');
+    body.module = $('#e-module').value.trim() || null;
+    body.base = hex($('#e-base').value);
+    body.offsets = $('#e-offs').value.split(',').map(s => s.trim()).filter(Boolean).map(hex);
+    if (editing.mode === 'edit') { await api('/api/mod/update', { id: editing.mod.id, ...body }); toast('Saved.'); }
+    else { await api('/api/mod/add', body); toast(`${body.name} added.`); sfx.win(); }
+  }
+  closeModals(); modsSig = '';
+}));
+$('#e-del').addEventListener('click', run(async () => {
+  if (!editing?.mod) return;
+  await api('/api/mod/delete', { id: editing.mod.id }); toast(`${editing.mod.name} deleted.`); sfx.off(); closeModals(); modsSig = '';
+}));
+
+/* ---------- Cheat Engine import ---------- */
+$('#ct-file').addEventListener('change', run(async e => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  const r = await api('/api/import_ct', { text: await f.text() });
+  toast(`Imported ${r.added} mod${r.added === 1 ? '' : 's'}` + (r.skipped ? `. Skipped ${r.skipped} that need Cheat Engine itself (scripts or symbols).` : '.'));
+  if (r.added) sfx.win();
+  modsSig = '';
+}));
+
+/* ---------- modals ---------- */
+function closeModals() { $$('.modal').forEach(m => m.hidden = true); }
+document.addEventListener('click', e => { if (e.target.closest('[data-close]') || e.target.classList.contains('modal')) closeModals(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !document.activeElement?.classList.contains('hk')) closeModals(); });
+
+/* ---------- value finder ---------- */
+const FIRST_MODES = [['exact', 'Exact value'], ['unknown', 'Unknown starting value']];
+const NEXT_MODES = [['exact', 'Exact value'], ['increased', 'Went up'], ['decreased', 'Went down'], ['changed', 'Changed'], ['unchanged', 'Stayed the same']];
+let lastScans = -1, wasBusy = false;
+function renderFinderStatus() {
+  const sc = S.scan || {};
+  if (sc.scans !== lastScans) {
+    lastScans = sc.scans;
+    const modes = sc.scans ? NEXT_MODES : FIRST_MODES;
+    const cur = $('#f-mode').value;
+    $('#f-mode').innerHTML = modes.map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
+    if (modes.some(([v]) => v === cur)) $('#f-mode').value = cur;
+    syncValueBox();
+  }
+  $('#f-first').hidden = !!sc.scans; $('#f-next').hidden = !sc.scans; $('#f-new').hidden = !sc.scans;
+  $('#f-type').disabled = !!sc.scans;
+  if (sc.scans) $('#f-type').value = sc.type;
+  $$('#f-first, #f-next').forEach(b => b.disabled = sc.busy || !S.attached);
+  $('#f-bar').hidden = !sc.busy;
+  $('#f-bar i').style.width = Math.round((sc.progress || 0) * 100) + '%';
+  if (!S.attached) $('#f-status').textContent = 'Join a game first. Click the pill at the top.';
+  else if (sc.busy) $('#f-status').textContent = `Scanning… ${Math.round((sc.progress || 0) * 100)}%`;
+  else if (sc.error) $('#f-status').textContent = sc.error;
+  else if (sc.scans) $('#f-status').innerHTML = `<b>${(sc.total || 0).toLocaleString()}</b> result${sc.total === 1 ? '' : 's'} after ${sc.scans} scan${sc.scans === 1 ? '' : 's'}. ` + (sc.total > 200 ? 'Change the value in the game and scan again.' : sc.total === 0 ? 'Nothing left. Try New scan with a different value type.' : 'Change it in the game to check which one is right, or add it as a mod.');
+  if (wasBusy && !sc.busy) { refreshResults(); if (sc.scans) (sc.total ? sfx.clink : sfx.err)(); }
+  wasBusy = sc.busy;
+}
+function syncValueBox() { const exact = $('#f-mode').value === 'exact'; $('#f-value').disabled = !exact; if (!exact) $('#f-value').value = ''; }
+$('#f-mode').addEventListener('change', syncValueBox);
+const scan = kind => run(async () => {
+  const mode = $('#f-mode').value, value = $('#f-value').value;
+  if (mode === 'exact' && !value.trim()) { $('#f-value').focus(); throw new Error('Type the number you see in the game.'); }
+  await api('/api/scan/' + kind, { type: $('#f-type').value, mode, value });
+  wasBusy = true; S.scan.busy = true; renderFinderStatus();
+});
+$('#f-first').addEventListener('click', scan('first'));
+$('#f-next').addEventListener('click', scan('next'));
+$('#f-value').addEventListener('keydown', e => { if (e.key === 'Enter') (S.scan.scans ? $('#f-next') : $('#f-first')).click(); });
+$('#f-new').addEventListener('click', run(async () => { await api('/api/scan/reset', {}); lastScans = -1; $('#f-table tbody').innerHTML = ''; $('#f-table').hidden = true; $('#f-empty').hidden = false; $('#f-empty').textContent = 'Results show up here after a scan.'; sfx.off(); }));
+
+async function refreshResults() {
+  if (tab !== 'finder' || !S.attached) return;
+  let r;
+  try { r = await api('/api/scan/results'); } catch { return; }
+  const rows = r.results, st = r.status, tb = $('#f-table tbody');
+  if (!rows.length) {
+    $('#f-table').hidden = true; $('#f-empty').hidden = false;
+    $('#f-empty').textContent = st.scans ? (st.total > 0 ? `${st.total.toLocaleString()} results. Too many to list. Change the value in the game, then press Next scan.` : 'No results.') : 'Results show up here after a scan.';
+    return;
+  }
+  $('#f-table').hidden = false; $('#f-empty').hidden = true;
+  const editingAddr = document.activeElement?.closest?.('tr')?.dataset.addr;
+  const typed = Object.fromEntries($$('tr[data-addr]', tb).map(tr => [tr.dataset.addr, $('.ed', tr).value]));
+  tb.innerHTML = rows.map(x => `<tr data-addr="${x.address}"><td class="mono">${x.address.toString(16).toUpperCase()}</td><td class="v${x.value !== x.previous ? ' changed' : ''}">${fmt(x.value, st.type)}</td><td class="muted">${fmt(x.previous, st.type)}</td><td><input class="in ed" placeholder="New value" inputmode="decimal"></td><td><button class="btn sm" data-add>+ Mod</button></td></tr>`).join('');
+  for (const [a, v] of Object.entries(typed)) { const i = $(`tr[data-addr="${a}"] .ed`, tb); if (i) i.value = v; }
+  if (editingAddr) $(`tr[data-addr="${editingAddr}"] .ed`, tb)?.focus();
+}
+setInterval(() => { if (tab === 'finder' && S.scan?.scans && !S.scan.busy) refreshResults(); }, 900);
+$('#f-table').addEventListener('click', e => { const b = e.target.closest('[data-add]'); if (b) openEditor(null, +b.closest('tr').dataset.addr); });
+$('#f-table').addEventListener('keydown', run(async e => {
+  if (e.key !== 'Enter' || !e.target.matches('.ed')) return;
+  const v = e.target.value.trim(); if (!v) return;
+  await api('/api/scan/write', { address: +e.target.closest('tr').dataset.addr, value: v });
+  e.target.value = ''; sfx.clink(); toast('Written. Check the game.'); refreshResults();
+}));
+
+/* ---------- settings ---------- */
+function renderSettings() {
+  const st = S.settings || {};
+  $$('[data-set]').forEach(b => b.setAttribute('aria-checked', String(!!st[b.dataset.set])));
+  $('#s-auto-txt').textContent = st.autoAttach ? `Joins ${st.autoAttach} whenever it starts.` : 'Pick a game once and House Edge joins it whenever it starts.';
+  $('#s-forget').disabled = !st.autoAttach && !S.attached;
+  const hk = $('[data-set="hotkeys"]'); hk.disabled = !S.hotkeysSupported;
+  $('#s-hk-txt').textContent = S.hotkeysSupported ? 'Toggle a mod’s lock from inside the game' : 'Hotkeys only work on Windows. The buttons here still work.';
+  if (document.activeElement !== $('#s-party')) $('#s-party').value = String(st.partyEvery || 20);
+  if ($('#s-launch').textContent !== (S.launchOption || '')) $('#s-launch').textContent = S.launchOption || '';
+  const ph = $('#s-panel-hk');
+  if (document.activeElement !== ph) { ph.value = ph.dataset.saved = st.panelHotkey || ''; ph.placeholder = 'Click, then press keys'; }
+  ph.disabled = !S.hotkeysSupported;
+}
+$$('[data-set]').forEach(b => b.addEventListener('click', run(async () => {
+  const k = b.dataset.set, v = b.getAttribute('aria-checked') !== 'true';
+  await api('/api/settings', { [k]: v }); S.settings[k] = v; renderSettings(); (v ? sfx.on : sfx.off)();
+})));
+$('#s-party').addEventListener('change', run(async e => { await api('/api/settings', { partyEvery: +e.target.value }); sfx.clink(); }));
+$('#s-forget').addEventListener('click', run(async () => { await api('/api/detach', {}); toast('Forgot the game. Pick one again whenever you like.'); sfx.off(); }));
+
+/* ---------- boot ---------- */
+document.body.classList.toggle('compact', ls.get('he.compact', false));
+setTab(tab);
+poll();
+})();
+</script>
+</body>
+</html>

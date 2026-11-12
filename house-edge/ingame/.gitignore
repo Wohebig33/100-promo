@@ -1,0 +1,5 @@
+bin/
+obj/
+stubs/bin/
+stubs/obj/
+package/

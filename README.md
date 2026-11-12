@@ -22,3 +22,15 @@ The browser version needs a keyboard and mouse. Progress saves to the browser's 
 
 ## Controls
 WASD to move, click or J for melee, right-click or F to block, Space to dash, hold C to charge Malice, 1–4 for bloodline skills, Q and E for affinity skills, G for Awakening, T to interact, K for stats and skills, Esc to pause.
+
+---
+
+# We're All In: main menu
+
+There's a playable main menu for **We're All In** in [`were-all-in/`](were-all-in/README.md). Open `were-all-in/index.html` in a browser.
+
+---
+
+# House Edge: mod panel
+
+[`house-edge/`](house-edge/README.md) is a trainer for single-player games, made for We're All In. It has an in-game mod menu you drop into the game folder (BepInEx, opens with Q+E) and a desktop panel. It runs outside the game, joins it automatically and lets you lock or change values like chips and health. It has a built-in value finder, hotkeys, Cheat Engine table import and Party Mode. Download the Windows build from the Actions tab.

@@ -1,0 +1,33 @@
+HOUSE EDGE IN-GAME: mod menu for We're All In
+==============================================
+
+INSTALL (about a minute)
+1. In Steam, right-click We're All In and choose Manage > Browse local files.
+   A folder opens, with WereAllIn.exe and UnityPlayer.dll in it.
+2. Copy EVERYTHING from this zip into that folder, next to WereAllIn.exe:
+     winhttp.dll
+     doorstop_config.ini
+     BepInEx\            (folder)
+   If Windows asks, choose "Replace".
+3. Start the game from Steam as usual. The first launch takes a little longer while BepInEx sets itself up.
+4. Hold Q + E together in the game. The House Edge menu opens.
+
+USE IT
+- Fun: game speed (slow-mo to turbo), gravity (float, moon, upside down), field of view, Party Mode.
+- Find values: type what something is called (chips, money, health, lives) or tap a quick word.
+  Press +100 on a result and watch the game. If it changed, press Pin.
+- Pinned: Lock keeps a value from changing. All changes every copy, like every enemy's health.
+  Pinned values come back by themselves after a level change or a restart.
+
+CHANGE THE KEYS
+After the first launch, open BepInEx\config\houseedge.ingame.cfg and change MenuKeys (for example F1 or Ctrl+M).
+
+IF THE MENU DOESN'T SHOW UP
+- Check that winhttp.dll is right next to WereAllIn.exe, not in a subfolder.
+- Look for BepInEx\LogOutput.log. If it's missing, BepInEx didn't load. Antivirus software sometimes blocks winhttp.dll.
+- Search that log for "House Edge" and send it over. It says what went wrong.
+
+UNINSTALL
+Delete winhttp.dll, doorstop_config.ini and the BepInEx folder. The game goes back to normal.
+
+Single-player and local play only. Please don't use mods online against other people.

@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    House Edge In-Game: a BepInEx 5 plugin for Unity (Mono) games.
+    Build:   dotnet build -c Release -p:BepInExDir=<game>/BepInEx/core
+    Without BepInExDir it compiles against stubs/ (build stubs/BepInEx.Stub.csproj first).
+  -->
+  <PropertyGroup>
+    <TargetFramework>net46</TargetFramework>
+    <AssemblyName>HouseEdgeInGame</AssemblyName>
+    <RootNamespace>HouseEdgeInGame</RootNamespace>
+    <LangVersion>9.0</LangVersion>
+    <Version>0.1.0</Version>
+    <OutputPath>bin/</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <BepInExDir Condition="'$(BepInExDir)' == ''">$(MSBuildThisFileDirectory)stubs/bin</BepInExDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="stubs/**" />
+    <PackageReference Include="UnityEngine.Modules" Version="2021.3.33" IncludeAssets="compile" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+    <Reference Include="BepInEx">
+      <HintPath>$(BepInExDir)/BepInEx.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+</Project>
