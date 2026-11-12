@@ -1,0 +1,49 @@
+name: House Edge (Windows build)
+
+on:
+  push:
+    paths:
+      - "house-edge/**"
+      - ".github/workflows/house-edge.yml"
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: house-edge
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: python -m pip install -r requirements.txt pyinstaller
+
+      - name: Self-test against a stand-in game (real Windows memory APIs)
+        run: python selftest.py
+
+      - name: Build HouseEdge.exe
+        run: pyinstaller --noconfirm --onefile --windowed --name HouseEdge --add-data "house_edge/ui;house_edge/ui" run.py
+
+      - name: Smoke-test the .exe
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath .\dist\HouseEdge.exe -ArgumentList '--headless','--port','8765' -PassThru
+          $ok = $false
+          for ($i = 0; $i -lt 30 -and -not $ok; $i++) {
+            Start-Sleep -Seconds 1
+            try { $r = Invoke-WebRequest -UseBasicParsing http://127.0.0.1:8765/; $ok = $r.StatusCode -eq 200 -and $r.Content -match 'House Edge' } catch {}
+          }
+          Stop-Process -Id $p.Id -Force
+          if (-not $ok) { throw "HouseEdge.exe did not serve the panel" }
+          "HouseEdge.exe started and served the panel."
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HouseEdge-windows
+          path: house-edge/dist/HouseEdge.exe
+          if-no-files-found: error

@@ -28,3 +28,9 @@ WASD to move, click or J for melee, right-click or F to block, Space to dash, ho
 # We're All In: main menu
 
 There's a playable main menu for **We're All In** in [`were-all-in/`](were-all-in/README.md). Open `were-all-in/index.html` in a browser.
+
+---
+
+# House Edge: mod panel
+
+[`house-edge/`](house-edge/README.md) is a trainer for single-player games, made for We're All In. It runs outside the game, joins it automatically and lets you lock or change values like chips and health. It has a built-in value finder, hotkeys, Cheat Engine table import and Party Mode. Download the Windows build from the Actions tab.
