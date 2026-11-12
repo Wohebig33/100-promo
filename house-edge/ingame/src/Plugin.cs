@@ -20,7 +20,7 @@ namespace HouseEdgeInGame
     public class Plugin : BaseUnityPlugin
     {
         public const string Guid = "houseedge.ingame";
-        public const string Version = "0.1.0";
+        public const string Version = "0.2.0";
         private const int WindowId = 0x4E1D;
 
         // settings (BepInEx/config/houseedge.ingame.cfg)
@@ -53,6 +53,7 @@ namespace HouseEdgeInGame
         private string _query = "";
         private List<Hit> _hits = new List<Hit>();
         private int _total = -1;
+        private bool _narrowed;
         private readonly Dictionary<object, string> _edits = new Dictionary<object, string>();
         private List<Pin> _pins = new List<Pin>();
         private string _pinsPath;
@@ -77,8 +78,9 @@ namespace HouseEdgeInGame
             _chord = Keys.Parse(_cfgKeys.Value) ?? Keys.Parse("Q+E");
             _pinsPath = Path.Combine(Paths.ConfigPath, "houseedge.ingame.pins.txt");
             _pins = Finder.Load(_pinsPath);
-            SceneManager.sceneLoaded += (s, m) => { foreach (var p in _pins) { p.Targets.Clear(); p.NextResolve = 0; } _hits.Clear(); _total = -1; };
+            SceneManager.sceneLoaded += (s, m) => { foreach (var p in _pins) { p.Targets.Clear(); p.NextResolve = 0; } _hits.Clear(); _total = -1; _narrowed = false; };
             Logger.LogInfo($"House Edge In-Game {Version} loaded. Hold {_chord.Text} to open the menu. {_pins.Count} pinned values.");
+            Logger.LogInfo($"Game: {GameInfo.Summary}");
         }
 
         private void Update()
@@ -90,6 +92,7 @@ namespace HouseEdgeInGame
                 bool typing = GUIUtility.keyboardControl != 0;
                 if (_chord.Pressed() && !typing) Toggle();
 
+                if (Online.Tick(now)) OnlineChanged(now);
                 ResolvePins(now);
                 ApplyLocks();
                 ApplySpeed();
@@ -142,6 +145,35 @@ namespace HouseEdgeInGame
             _cursorSaved = false;
         }
 
+        private const string OnlineNote = "Mods are paused in online games. They come back when you leave.";
+
+        /// <summary>Online: put speed and gravity back to normal and stop Party Mode. Offline again: bring back what the player chose.</summary>
+        private void OnlineChanged(float now)
+        {
+            if (!Mathf.Approximately(_speed, 1f)) _speedTouched = true; // only touch the game's speed if House Edge changed it
+            if (_gravSaved) ApplyGravity();
+            if (Online.Active)
+            {
+                EndEffect();
+                if (_pausedPrev >= 0f) { Time.timeScale = _pausedPrev; _pausedPrev = -1f; }
+                ShowToast("Online game. " + OnlineNote, 7f);
+                Logger.LogInfo($"Online session found ({Online.Why}). Mods are paused until it ends.");
+            }
+            else
+            {
+                _nextParty = now + 5f;
+                ShowToast("Offline again. House Edge mods are back on.", 5f);
+                Logger.LogInfo("Online session ended. Mods are back on.");
+            }
+        }
+
+        private bool BlockedOnline()
+        {
+            if (!Online.Active) return false;
+            ShowToast(OnlineNote);
+            return true;
+        }
+
         private void ShowToast(string text, float seconds = 3.5f, bool big = false)
         {
             _toasts.Add(new Toast { Text = text, Until = Time.realtimeSinceStartup + seconds, Big = big });
@@ -149,12 +181,12 @@ namespace HouseEdgeInGame
         }
 
         // ======================================================================== fun: speed, gravity, FOV
-        private float EffectiveSpeed => _effSpeed ?? _speed;
-        private float EffectiveGravity => _effGravity ?? _gravity;
+        private float EffectiveSpeed => Online.Active ? 1f : _effSpeed ?? _speed;
+        private float EffectiveGravity => Online.Active ? 1f : _effGravity ?? _gravity;
 
         private void ApplySpeed()
         {
-            if (_open && _cfgPause.Value)
+            if (_open && _cfgPause.Value && !Online.Active)
             {
                 if (Time.timeScale != 0f) { if (_pausedPrev < 0f) _pausedPrev = Time.timeScale; Time.timeScale = 0f; }
                 return;
@@ -226,7 +258,7 @@ namespace HouseEdgeInGame
         private void PartyTick(float now)
         {
             if (_effect.Length > 0 && now >= _effectUntil) EndEffect();
-            if (!_party || now < _nextParty) return;
+            if (!_party || Online.Active || now < _nextParty) return;
             _nextParty = now + Mathf.Max(5, _cfgPartyEvery.Value);
             if (_effect.Length > 0) return;
 
@@ -279,15 +311,48 @@ namespace HouseEdgeInGame
         {
             _edits.Clear();
             _scroll = Vector2.zero;
+            _narrowed = false;
             try { _hits = Finder.Search(_query, 300, out _total); }
             catch (Exception e) { LogOnce(e); _hits = new List<Hit>(); _total = 0; }
+            foreach (var h in _hits) h.Base = Finder.ToNum(Finder.Read(h.Member, h.Instance));
+            RefreshShown();
+        }
+
+        /// <summary>
+        /// Keeps the results that moved the way the on-screen number did. Games often keep a display copy next to the real value,
+        /// and changing the copy does nothing. Only the real value keeps up when the game changes it.
+        /// </summary>
+        private void Narrow(string how)
+        {
+            var kept = new List<Hit>();
+            foreach (var h in _hits)
+            {
+                if (!h.Alive || h.Base == null) continue;
+                var cur = Finder.ToNum(Finder.Read(h.Member, h.Instance));
+                if (cur == null) continue;
+                double was = h.Base.Value, now = cur.Value;
+                bool keep = how == "changed" ? now != was : how == "up" ? now > was : how == "down" ? now < was : now == was;
+                if (!keep) continue;
+                h.Base = now;
+                kept.Add(h);
+            }
+            int before = _hits.Count;
+            _hits = kept; _total = kept.Count; _narrowed = true; _scroll = Vector2.zero; _edits.Clear();
+            ShowToast(kept.Count == 0 ? "Nothing matched. Search again, change the number in the game, and try again."
+                : kept.Count <= 3 ? $"{kept.Count} left. One of these is the real value: change it and pin it." : $"{kept.Count} of {before} left. Change the number in the game again and narrow some more.");
             RefreshShown();
         }
 
         private void RefreshShown()
         {
             if (_open && _tab == 1)
-                foreach (var h in _hits) h.Shown = h.Alive ? Finder.Show(Finder.Read(h.Member, h.Instance)) : "gone";
+                foreach (var h in _hits)
+                {
+                    var v = h.Alive ? Finder.Read(h.Member, h.Instance) : null;
+                    h.Shown = h.Alive ? Finder.Show(v) : "gone";
+                    var n = Finder.ToNum(v);
+                    h.Was = n != null && h.Base != null && n.Value != h.Base.Value ? "   was " + Finder.Show(h.Member.IsBool ? (object)(h.Base.Value != 0) : h.Base.Value) : "";
+                }
             foreach (var p in _pins)
                 p.Shown = p.Ready ? Finder.Show(Finder.Read(p.Member, Finder.Instances(p).FirstOrDefault())) : "not here";
         }
@@ -297,13 +362,22 @@ namespace HouseEdgeInGame
             foreach (var p in _pins)
             {
                 if (now < p.NextResolve || (p.Ready && !p.All)) continue;
-                try { Finder.Resolve(p); } catch (Exception e) { LogOnce(e); }
+                try
+                {
+                    if (Finder.Resolve(p))
+                    {
+                        SavePins();
+                        Logger.LogInfo($"{p.Label} has a new name in this version of the game: {p.TypeName}.{p.MemberName}. The pin follows it.");
+                    }
+                }
+                catch (Exception e) { LogOnce(e); }
                 p.NextResolve = now + (p.Ready ? 3f : 1.5f);
             }
         }
 
         private void ApplyLocks()
         {
+            if (Online.Active) return;
             foreach (var p in _pins)
             {
                 if (!p.Locked || p.LockValue == null || !p.Ready) continue;
@@ -328,6 +402,7 @@ namespace HouseEdgeInGame
 
         private bool SetHit(Hit h, object value)
         {
+            if (BlockedOnline()) return false;
             bool ok = h.Alive && Finder.Write(h.Member, h.Instance, value);
             if (!ok) ShowToast("Couldn't change that one. The game may have removed it.");
             return ok;
@@ -335,7 +410,7 @@ namespace HouseEdgeInGame
 
         private bool PinSet(Pin p, object value)
         {
-            if (!p.Ready) return false;
+            if (!p.Ready || BlockedOnline()) return false;
             bool any = false;
             foreach (var t in Finder.Instances(p)) any |= Finder.Write(p.Member, t, value);
             if (p.Locked) { p.LockValue = value; p.LockText = Convert.ToString(value, CultureInfo.InvariantCulture); SavePins(); }
@@ -353,6 +428,7 @@ namespace HouseEdgeInGame
         {
             if (on)
             {
+                if (BlockedOnline()) return;
                 if (!p.Ready) { ShowToast("That value isn't in this part of the game right now."); return; }
                 var cur = Finder.Read(p.Member, Finder.Instances(p).FirstOrDefault());
                 if (cur == null) return;
@@ -495,6 +571,15 @@ namespace HouseEdgeInGame
             GUILayout.EndHorizontal();
             GUILayout.Space(8);
 
+            if (Online.Active)
+            {
+                GUILayout.BeginVertical(_sRow);
+                GUILayout.Label("ONLINE GAME: MODS PAUSED", _sSection);
+                GUILayout.Label($"{Online.Why} House Edge is for single-player and local play, so values, locks, speed, gravity and Party Mode are off for now. Field of view and the FPS counter still work. Everything comes back when you leave.", _sMuted);
+                GUILayout.EndVertical();
+                GUILayout.Space(6);
+            }
+
             switch (_tab)
             {
                 case 0: DrawFun(); break;
@@ -509,7 +594,8 @@ namespace HouseEdgeInGame
         {
             _scroll = GUILayout.BeginScrollView(_scroll);
 
-            GUILayout.Label($"Game speed: {EffectiveSpeed:0.##}x", _sSection);
+            string paused = Online.Active ? " (paused: online game)" : "";
+            GUILayout.Label($"Game speed: {EffectiveSpeed:0.##}x{paused}", _sSection);
             GUILayout.BeginHorizontal();
             if (Button("Slow-mo", Mathf.Approximately(_speed, 0.25f))) SetSpeed(0.25f);
             if (Button("0.5x", Mathf.Approximately(_speed, 0.5f))) SetSpeed(0.5f);
@@ -521,7 +607,7 @@ namespace HouseEdgeInGame
             if (!Mathf.Approximately(ns, _speed)) SetSpeed(Mathf.Round(ns * 20f) / 20f);
             GUILayout.Space(12);
 
-            GUILayout.Label($"Gravity: {EffectiveGravity:0.##}x", _sSection);
+            GUILayout.Label($"Gravity: {EffectiveGravity:0.##}x{paused}", _sSection);
             GUILayout.BeginHorizontal();
             if (Button("Float", Mathf.Approximately(_gravity, 0f))) SetGravity(0f);
             if (Button("Moon", Mathf.Approximately(_gravity, 0.3f))) SetGravity(0.3f);
@@ -545,7 +631,7 @@ namespace HouseEdgeInGame
             GUILayout.Space(12);
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label($"Party Mode{(_effect.Length > 0 ? ": " + _effect : "")}", _sSection);
+            GUILayout.Label($"Party Mode{(_effect.Length > 0 ? ": " + _effect : "")}{(_party ? paused : "")}", _sSection);
             GUILayout.FlexibleSpace();
             if (Button(_party ? "ON" : "OFF", _party, 64))
             {
@@ -593,8 +679,20 @@ namespace HouseEdgeInGame
                 GUILayout.EndHorizontal();
             }
 
-            if (_total == 0) GUILayout.Label($"Nothing called \"{_query}\" here. Try another word, or a shorter one (hp instead of hitpoints).", _sHint);
+            if (_narrowed) GUILayout.Label(_total == 0 ? "None left. Press Search to start over." : $"{_total} left after narrowing down.", _sHint);
+            else if (_total == 0) GUILayout.Label($"Nothing called \"{_query}\" here. Try another word, or a shorter one (hp instead of hitpoints).", _sHint);
             else if (_total > 0) GUILayout.Label(_total > _hits.Count ? $"{_total} matches. Showing the first {_hits.Count}. Try a longer word to narrow it down." : $"{_total} match{(_total == 1 ? "" : "es")}. Change one and watch the game, then pin the one that works.", _sHint);
+
+            if (_hits.Count > 1)
+            {
+                GUILayout.Label("Too many? Change the number in the game (win or lose some chips), then press what it did. Display copies drop out and the real value stays.", _sMuted);
+                GUILayout.BeginHorizontal();
+                if (Button("Changed")) Narrow("changed");
+                if (Button("Went up")) Narrow("up");
+                if (Button("Went down")) Narrow("down");
+                if (Button("Stayed the same")) Narrow("same");
+                GUILayout.EndHorizontal();
+            }
 
             _scroll = GUILayout.BeginScrollView(_scroll);
             foreach (var h in _hits)
@@ -603,7 +701,7 @@ namespace HouseEdgeInGame
                 GUILayout.BeginHorizontal();
                 GUILayout.BeginVertical();
                 GUILayout.Label(h.Label, _sBold);
-                GUILayout.Label(h.Where, _sMuted);
+                GUILayout.Label(h.Where + h.Was, _sMuted);
                 GUILayout.EndVertical();
                 GUILayout.FlexibleSpace();
                 GUILayout.Label(h.Shown, _sValue, W(140));
@@ -646,7 +744,8 @@ namespace HouseEdgeInGame
                 GUILayout.BeginHorizontal();
                 GUILayout.BeginVertical();
                 GUILayout.Label(p.Label, _sBold);
-                string where = !p.Ready ? "Not in this part of the game. It'll reconnect when it shows up."
+                string where = Online.Active && p.Locked ? "Lock paused: online game"
+                    : !p.Ready ? "Not in this part of the game. It'll reconnect when it shows up."
                     : p.Kind == 1 ? "global" : p.All ? $"all {p.Targets.Count(t => t != null)} of them" : "on " + p.ObjectName;
                 GUILayout.Label(where, _sMuted);
                 GUILayout.EndVertical();
@@ -687,10 +786,14 @@ namespace HouseEdgeInGame
         {
             _scroll = GUILayout.BeginScrollView(_scroll);
             GUILayout.Label($"House Edge In-Game {Version}", _sSection);
-            GUILayout.Label("A mod menu for single-player and local play. Please don't use it online against other people.", _sLabel);
+            GUILayout.Label("A mod menu for single-player and local play. In online games its mods pause by themselves.", _sLabel);
+            GUILayout.Label($"Running on: {GameInfo.Summary}", _sMuted);
+            GUILayout.Space(8);
+            GUILayout.Label("Every version", _sSection);
+            GUILayout.Label("The same install works in the full game and the demo, in 32-bit and 64-bit builds, and after game updates. When an update renames something you pinned, the pin follows the new name if it can tell which one it is.", _sLabel);
             GUILayout.Space(8);
             GUILayout.Label("How to find a value", _sSection);
-            GUILayout.Label("1. On Find values, search for what it's probably called: chips, money, health, lives.\n2. Several results? Press +100 on one and watch the game to see if it changed.\n3. Press Pin on the one that works. On the Pinned tab, Lock keeps it from changing.\n4. Use All to change every copy at once, for example every enemy's health.", _sLabel);
+            GUILayout.Label("1. On Find values, search for what it's probably called: chips, money, health, lives.\n2. Several results? Change the number in the game, then press Changed (or Went up / Went down) to keep only the ones that moved with it.\n3. Press Pin on the one that works. On the Pinned tab, Lock keeps it from changing.\n4. Use All to change every copy at once, for example every enemy's health.", _sLabel);
             GUILayout.Space(8);
             GUILayout.Label("Tips", _sSection);
             GUILayout.Label("- Menu keys, size and Party Mode timing are in BepInEx/config/houseedge.ingame.cfg.\n- Typing in the search box also reaches the game. Turn on Pause while menu is open on the Fun tab if that's a problem.\n- If something goes wrong, BepInEx/LogOutput.log says what happened.", _sLabel);

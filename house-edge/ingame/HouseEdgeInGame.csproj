@@ -9,7 +9,7 @@
     <AssemblyName>HouseEdgeInGame</AssemblyName>
     <RootNamespace>HouseEdgeInGame</RootNamespace>
     <LangVersion>9.0</LangVersion>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <OutputPath>bin/</OutputPath>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <GenerateDependencyFile>false</GenerateDependencyFile>
@@ -17,6 +17,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="stubs/**" />
+    <Compile Remove="tests/**" />
     <PackageReference Include="UnityEngine.Modules" Version="2021.3.33" IncludeAssets="compile" PrivateAssets="all" />
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
     <Reference Include="BepInEx">

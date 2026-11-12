@@ -1,23 +1,49 @@
 HOUSE EDGE IN-GAME: mod menu for We're All In
 ==============================================
 
+WHICH DOWNLOAD
+- HouseEdge-InGame-drop-into-game-folder: the 64-bit one. Almost everyone needs this.
+- HouseEdge-InGame-32bit-drop-into-game-folder: only for a 32-bit build of the game.
+  Not sure? Use the 64-bit one. If the menu never shows up and LogOutput.log is missing, try the 32-bit one.
+The same download works for the full game and the demo, and keeps working after game updates.
+
 INSTALL (about a minute)
-1. In Steam, right-click We're All In and choose Manage > Browse local files.
-   A folder opens, with WereAllIn.exe and UnityPlayer.dll in it.
+1. In Steam, right-click We're All In (or We're All In Demo) and choose Manage > Browse local files.
+   A folder opens with WereAllIn.exe and UnityPlayer.dll in it. For the demo it's called WereAllInDemo.
 2. Copy EVERYTHING from this zip into that folder, next to WereAllIn.exe:
      winhttp.dll
      doorstop_config.ini
      BepInEx\            (folder)
+   The other files in the zip are harmless, so copying all of them is fine.
    If Windows asks, choose "Replace".
 3. Start the game from Steam as usual. The first launch takes a little longer while BepInEx sets itself up.
 4. Hold Q + E together in the game. The House Edge menu opens.
+Have the full game and the demo? Install into each folder. They keep their own pins.
+
+STEAM DECK AND LINUX (PROTON)
+Do the install above, then in Steam open the game's Properties and set Launch Options to:
+     WINEDLLOVERRIDES="winhttp=n,b" %command%
+Without it, Proton skips winhttp.dll and the menu never loads.
 
 USE IT
 - Fun: game speed (slow-mo to turbo), gravity (float, moon, upside down), field of view, Party Mode.
 - Find values: type what something is called (chips, money, health, lives) or tap a quick word.
-  Press +100 on a result and watch the game. If it changed, press Pin.
+- Lots of results? Win or lose some chips, then press Changed (or Went up / Went down).
+  Copies the game only shows on screen drop out, and the real value stays. Repeat until one or two are left.
+- Change it with +100 and watch the game. If the number on screen changed, press Pin.
 - Pinned: Lock keeps a value from changing. All changes every copy, like every enemy's health.
-  Pinned values come back by themselves after a level change or a restart.
+  Pinned values come back by themselves after a level change, a restart or a game update.
+
+ONLINE GAMES
+House Edge is for single-player and local play. When you're in an online session with other players,
+mods pause by themselves and the menu says so. They turn back on when you leave.
+Playing solo or with bots counts as offline.
+
+AFTER A GAME UPDATE
+Nothing to do. If the update renamed something you pinned, the pin follows the new name when it can tell
+which one it is. If a pin stays on "Not in this part of the game", find the value again and pin it.
+If an update ever removes the MonoBleedingEdge folder and adds GameAssembly.dll, the game has switched to a
+different engine setup (IL2CPP) that this version of BepInEx can't load. Check back for an update.
 
 CHANGE THE KEYS
 After the first launch, open BepInEx\config\houseedge.ingame.cfg and change MenuKeys (for example F1 or Ctrl+M).
@@ -25,9 +51,8 @@ After the first launch, open BepInEx\config\houseedge.ingame.cfg and change Menu
 IF THE MENU DOESN'T SHOW UP
 - Check that winhttp.dll is right next to WereAllIn.exe, not in a subfolder.
 - Look for BepInEx\LogOutput.log. If it's missing, BepInEx didn't load. Antivirus software sometimes blocks winhttp.dll.
-- Search that log for "House Edge" and send it over. It says what went wrong.
+  On Steam Deck or Linux, check the Launch Options line above.
+- Search that log for "House Edge" and send it over. It says which version of the game it found and what went wrong.
 
 UNINSTALL
 Delete winhttp.dll, doorstop_config.ini and the BepInEx folder. The game goes back to normal.
-
-Single-player and local play only. Please don't use mods online against other people.

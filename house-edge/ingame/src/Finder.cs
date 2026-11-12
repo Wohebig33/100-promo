@@ -33,6 +33,8 @@ namespace HouseEdgeInGame
         public string Label;
         public string Where;
         public string Shown = "";
+        public double? Base;
+        public string Was = "";  // "was 500" when it moved since then     // the value when the search ran or was last narrowed, for "Changed" / "Went up"
 
         public bool Alive => Member.IsStatic || Target != null; // Unity's == null also catches destroyed objects
         public object Instance => Member.IsStatic ? null : Target;
@@ -69,7 +71,7 @@ namespace HouseEdgeInGame
             "UnityEngine", "Unity.", "UnityEditor", "System", "mscorlib", "netstandard", "Mono.", "Microsoft.",
             "BepInEx", "0Harmony", "HarmonyX", "MonoMod", "HouseEdgeInGame", "Newtonsoft", "TextMeshPro",
             "DOTween", "DemiLib", "Rewired", "Sirenix", "FMOD", "Steamworks", "com.rlabrecque", "Facepunch",
-            "Cinemachine", "Mirror", "Photon", "Assembly-CSharp-Editor",
+            "Cinemachine", "Mirror", "Photon", "Fusion", "FishNet", "kcp2k", "Telepathy", "Assembly-CSharp-Editor",
         };
 
         private static readonly Dictionary<Type, List<Member>> InstanceCache = new Dictionary<Type, List<Member>>();
@@ -148,7 +150,7 @@ namespace HouseEdgeInGame
 
         public static IEnumerable<UObject> LiveGameObjects()
         {
-            foreach (var mb in UObject.FindObjectsOfType<MonoBehaviour>())
+            foreach (var mb in Compat.FindAll(typeof(MonoBehaviour)))
                 if (mb != null && IsGameType(mb.GetType())) yield return mb;
             ScriptableObject[] data;
             try { data = Resources.FindObjectsOfTypeAll<ScriptableObject>(); } catch (Exception) { data = new ScriptableObject[0]; }
@@ -207,6 +209,14 @@ namespace HouseEdgeInGame
         public static bool Write(Member m, object target, object value)
         {
             try { m.Set(target, value); return true; } catch (Exception) { return false; }
+        }
+
+        /// <summary>A value as a number for comparing: on/off is 1 or 0. Null if it can't be read.</summary>
+        public static double? ToNum(object v)
+        {
+            if (v == null) return null;
+            if (v is bool b) return b ? 1 : 0;
+            try { return Convert.ToDouble(v, CultureInfo.InvariantCulture); } catch (Exception) { return null; }
         }
 
         public static string Show(object v)
@@ -269,24 +279,83 @@ namespace HouseEdgeInGame
             return false;
         }
 
-        // ------------------------------------------------------------------ pins: finding targets again after a scene load
-        public static void Resolve(Pin p)
+        // ------------------------------------------------------------------ pins: finding targets again after a scene load or a game update
+        private static Dictionary<string, Type> _byFull;
+        private static Dictionary<string, List<Type>> _byShort;
+        private static int _typesFor;
+
+        private static string ShortName(string fullName)
         {
+            int i = Math.Max(fullName.LastIndexOf('.'), fullName.LastIndexOf('+'));
+            return i >= 0 ? fullName.Substring(i + 1) : fullName;
+        }
+
+        private static void IndexTypes()
+        {
+            int n = AppDomain.CurrentDomain.GetAssemblies().Length;
+            if (_byFull != null && n == _typesFor) return;
+            _typesFor = n;
+            _byFull = new Dictionary<string, Type>();
+            _byShort = new Dictionary<string, List<Type>>();
+            foreach (var t in AppDomain.CurrentDomain.GetAssemblies().Where(IsGameAssembly).SelectMany(SafeTypes))
+            {
+                if (t.FullName == null) continue;
+                _byFull[t.FullName] = t;
+                var key = t.Name.ToLowerInvariant();
+                if (!_byShort.TryGetValue(key, out var list)) _byShort[key] = list = new List<Type>();
+                list.Add(t);
+            }
+        }
+
+        /// <summary>
+        /// The pin's type: by its exact name first. If a game update moved it to another namespace or changed its case,
+        /// by its short name, as long as only one type has that name.
+        /// </summary>
+        private static Type FindPinType(string fullName)
+        {
+            IndexTypes();
+            if (_byFull.TryGetValue(fullName, out var t)) return t;
+            return _byShort.TryGetValue(ShortName(fullName).ToLowerInvariant(), out var list) && list.Count == 1 ? list[0] : null;
+        }
+
+        /// <summary>
+        /// The pin's member: by its exact name first. If a game update renamed it, for example "chips" to "_chips"
+        /// or a field to a property, by its readable name, as long as only one member matches.
+        /// </summary>
+        private static Member FindPinMember(List<Member> members, string memberName)
+        {
+            var exact = members.FirstOrDefault(m => (m.Field != null ? m.Field.Name : m.Prop.Name) == memberName);
+            if (exact != null) return exact;
+            var want = Pretty(memberName).ToLowerInvariant();
+            var close = members.Where(m => m.Name.ToLowerInvariant() == want).ToList();
+            return close.Count == 1 ? close[0] : null;
+        }
+
+        /// <summary>Connects a pin to the game. Returns true when the pin had to be updated to a renamed type or member, so it should be saved.</summary>
+        public static bool Resolve(Pin p)
+        {
+            bool renamed = false;
             if (p.Member == null)
             {
-                var type = AppDomain.CurrentDomain.GetAssemblies().Where(IsGameAssembly).SelectMany(SafeTypes).FirstOrDefault(t => t.FullName == p.TypeName);
-                if (type == null) return;
+                var type = FindPinType(p.TypeName);
+                if (type == null) return false;
                 var members = p.Kind == 1 ? MembersOf(type, true) : InstanceMembers(type);
-                p.Member = members.FirstOrDefault(m => (m.Field != null ? m.Field.Name : m.Prop.Name) == p.MemberName);
-                if (p.Member == null) return;
+                p.Member = FindPinMember(members, p.MemberName);
+                if (p.Member == null) return false;
+                var newMember = p.Member.Field != null ? p.Member.Field.Name : p.Member.Prop.Name;
+                var newType = p.Member.Owner.FullName;
+                if (newMember != p.MemberName || newType != p.TypeName)
+                {
+                    p.TypeName = newType; p.MemberName = newMember; renamed = true;
+                }
                 if (p.LockText.Length > 0 && TryConvert(p.LockText, p.Member.ValueType, out var lv)) p.LockValue = lv;
             }
-            if (p.Kind == 1) return;
+            if (p.Kind == 1) return renamed;
             p.Targets.RemoveAll(t => t == null);
-            if (p.Targets.Count > 0 && !p.All) return;
+            if (p.Targets.Count > 0 && !p.All) return renamed;
             UObject[] found;
-            try { found = p.Kind == 2 ? Resources.FindObjectsOfTypeAll(p.Member.Owner) : UObject.FindObjectsOfType(p.Member.Owner); }
-            catch (Exception) { return; }
+            try { found = p.Kind == 2 ? Resources.FindObjectsOfTypeAll(p.Member.Owner) : Compat.FindAll(p.Member.Owner); }
+            catch (Exception) { return renamed; }
             var matches = found.Where(o => o != null && p.Member.Owner.IsInstanceOfType(o)).ToList();
             p.Targets.Clear();
             if (p.All) p.Targets.AddRange(matches);
@@ -295,6 +364,7 @@ namespace HouseEdgeInGame
                 var best = matches.FirstOrDefault(o => o.name == p.ObjectName) ?? matches.FirstOrDefault();
                 if (best != null) p.Targets.Add(best);
             }
+            return renamed;
         }
 
         public static IEnumerable<object> Instances(Pin p)

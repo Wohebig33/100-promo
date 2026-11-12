@@ -53,6 +53,14 @@ jobs:
           if-no-files-found: error
 
   ingame:
+    # One drop-in folder per Windows build of the game. Most players need 64-bit. The plugin DLL is the same in both.
+    strategy:
+      matrix:
+        include:
+          - arch: x64
+            artifact: HouseEdge-InGame-drop-into-game-folder
+          - arch: x86
+            artifact: HouseEdge-InGame-32bit-drop-into-game-folder
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -64,13 +72,17 @@ jobs:
         with:
           dotnet-version: "8.0.x"
 
-      - name: Download BepInEx 5 (Windows, 64-bit)
+      - name: Test online-session detection
+        run: dotnet run --project tests/OnlineTest.csproj
+
+      - name: Download BepInEx 5 (Windows, ${{ matrix.arch }})
         env:
           GH_TOKEN: ${{ github.token }}
+          ARCH: ${{ matrix.arch }}
         run: |
           url=$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" "https://api.github.com/repos/BepInEx/BepInEx/releases?per_page=40" \
-            | jq -r '[.[] | select(.prerelease | not) | select(.tag_name | startswith("v5.4"))][0].assets[]
-                     | select(.name | test("(win_x64|_x64_).*\\.zip$")) | select(.name | test("unix|linux|macos"; "i") | not)
+            | jq -r --arg a "$ARCH" '[.[] | select(.prerelease | not) | select(.tag_name | startswith("v5.4"))][0].assets[]
+                     | select(.name | test("(win_" + $a + "|_" + $a + "_).*\\.zip$")) | select(.name | test("unix|linux|macos"; "i") | not)
                      | .browser_download_url' | head -1)
           test -n "$url"
           echo "Using $url"
@@ -93,7 +105,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: HouseEdge-InGame-drop-into-game-folder
+          name: ${{ matrix.artifact }}
           path: house-edge/ingame/package/
           include-hidden-files: true
           if-no-files-found: error

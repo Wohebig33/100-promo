@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Checks the online-session detection against stand-ins for each networking library. Run it with: dotnet run, project tests/OnlineTest.csproj -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../src/Online.cs" />
+    <Compile Include="../src/Reflect.cs" />
+    <Compile Include="OnlineTest.cs" />
+  </ItemGroup>
+</Project>

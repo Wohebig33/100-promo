@@ -18,10 +18,12 @@ A mod panel (a "trainer") for single-player games, made for **We're All In**. It
 
 We're All In is a Unity game built with Mono: it ships `UnityPlayer.dll` and a `MonoBleedingEdge` folder. So the menu can live inside the game through [BepInEx](https://github.com/BepInEx/BepInEx), the standard Unity mod loader.
 
-1. Open this repo's **Actions** tab, then **House Edge (Windows build)**. Pick the latest green run and download **HouseEdge-InGame-drop-into-game-folder**.
+1. Open this repo's **Actions** tab, then **House Edge (Windows build)**. Pick the latest green run and download **HouseEdge-InGame-drop-into-game-folder** (64-bit). There's also a 32-bit download for 32-bit builds of the game.
 2. In Steam, right-click the game and choose **Manage → Browse local files**.
 3. Unzip everything into that folder, next to `WereAllIn.exe`: `winhttp.dll`, `doorstop_config.ini` and the `BepInEx` folder.
 4. Play from Steam and hold **Q+E**.
+
+On Steam Deck or Linux, also set the game's Launch Options to `WINEDLLOVERRIDES="winhttp=n,b" %command%` so Proton loads BepInEx.
 
 The full steps are in [`ingame/INSTALL.txt`](ingame/INSTALL.txt), which also comes inside the zip. To uninstall, delete those three items.
 
@@ -30,6 +32,18 @@ What's in the menu:
 - **Find values:** search the game's own code by name, or tap a quick word (chips, money, health, lives…). Set a result, double it, or add to it, then **Pin** the one that works.
 - **Pinned:** lock a value. **All** applies it to every copy, so you can freeze every enemy. Pins reconnect by themselves after a scene change or a restart.
 - **Party Mode:** every 20 seconds there's a random surprise, like turbo, slow-mo, moon gravity, fish-eye, or a jackpot on a pinned value.
+- **Narrow down:** games often keep a copy of a number just for the screen, and changing the copy does nothing. Win or lose some chips, then press **Changed**, **Went up** or **Went down**. The copies drop out and the real value stays.
+
+### Every version of the game
+- **Full game and demo:** the same download works in both. Each folder keeps its own pins.
+- **64-bit and 32-bit:** CI builds a drop-in folder for each. The plugin DLL is the same.
+- **Game updates:** pins are saved by name, not memory address. If an update renames a class or field you pinned, the pin follows the new name when only one match fits, and the log says so.
+- **Unity versions:** the plugin uses only long-lived Unity APIs and falls back where Unity 6 retires one.
+- The log and the About tab show which build was found, as the game name and version, demo or not, the Unity version and 32/64-bit.
+- **Not covered:** if the game ever switches from Mono to IL2CPP (`GameAssembly.dll` instead of `MonoBleedingEdge`), BepInEx 5 can't load it.
+
+### Online games
+The menu is for single-player and local play. When it sees an online session with other players, mods pause by themselves and the menu says so. That covers values, locks, speed, gravity and Party Mode. Field of view and the FPS counter keep working. Everything turns back on when the session ends. Solo play counts as offline, even when the game runs a host in the background. The check covers Mirror, Netcode for GameObjects, Photon PUN and Fusion, and FishNet (`ingame/src/Online.cs`). `dotnet run --project ingame/tests/OnlineTest.csproj` tests it against stand-ins for each library.
 
 Building it yourself: `ingame/` is a .NET project (`net46`) that compiles against BepInEx 5 and Unity's reference assemblies. CI builds it against the real BepInEx and packages the folder. To build without a BepInEx download, compile the stand-in first: `dotnet build ingame/stubs/BepInEx.Stub.csproj`, then `dotnet build ingame/HouseEdgeInGame.csproj`.
 
