@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Install House Edge.exe: puts the in-game menu into We're All In with a double-click.
+    Targets .NET Framework 4.6, which every Windows 10 and 11 PC already has, so it's one small .exe with nothing to install.
+    Build: dotnet build -c Release   (CI renames bin/HouseEdge-Install.exe to "Install House Edge.exe")
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net46</TargetFramework>
+    <AssemblyName>HouseEdge-Install</AssemblyName>
+    <RootNamespace>HouseEdgeInstaller</RootNamespace>
+    <LangVersion>9.0</LangVersion>
+    <Version>0.2.0</Version>
+    <OutputPath>bin/</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="tests/**" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+</Project>

@@ -53,18 +53,12 @@ jobs:
           if-no-files-found: error
 
   ingame:
-    # One drop-in folder per Windows build of the game. Most players need 64-bit. The plugin DLL is the same in both.
-    strategy:
-      matrix:
-        include:
-          - arch: x64
-            artifact: HouseEdge-InGame-drop-into-game-folder
-          - arch: x86
-            artifact: HouseEdge-InGame-32bit-drop-into-game-folder
+    # One drop-in folder for every Windows build of the game: the 64-bit loader sits next to the game's exe,
+    # the 32-bit one waits in BepInEx/houseedge-x86 for the installer to pick when the game is 32-bit.
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: house-edge/ingame
+        working-directory: house-edge
     steps:
       - uses: actions/checkout@v4
 
@@ -73,39 +67,92 @@ jobs:
           dotnet-version: "8.0.x"
 
       - name: Test online-session detection
-        run: dotnet run --project tests/OnlineTest.csproj
+        run: dotnet run --project ingame/tests/OnlineTest.csproj
 
-      - name: Download BepInEx 5 (Windows, ${{ matrix.arch }})
+      - name: Test the installer against fake game folders
+        run: dotnet run --project installer/tests/InstallerTest.csproj
+
+      - name: Download BepInEx 5 (Windows, 64-bit and 32-bit)
         env:
           GH_TOKEN: ${{ github.token }}
-          ARCH: ${{ matrix.arch }}
         run: |
-          url=$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" "https://api.github.com/repos/BepInEx/BepInEx/releases?per_page=40" \
-            | jq -r --arg a "$ARCH" '[.[] | select(.prerelease | not) | select(.tag_name | startswith("v5.4"))][0].assets[]
-                     | select(.name | test("(win_" + $a + "|_" + $a + "_).*\\.zip$")) | select(.name | test("unix|linux|macos"; "i") | not)
-                     | .browser_download_url' | head -1)
-          test -n "$url"
-          echo "Using $url"
-          curl -fsSL -o bepinex.zip "$url"
-          mkdir -p package
-          unzip -o -q bepinex.zip -d package
-          test -f package/BepInEx/core/BepInEx.dll
-          test -f package/winhttp.dll
+          releases=$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" "https://api.github.com/repos/BepInEx/BepInEx/releases?per_page=40")
+          for a in x64 x86; do
+            url=$(echo "$releases" | jq -r --arg a "$a" '[.[] | select(.prerelease | not) | select(.tag_name | startswith("v5.4"))][0].assets[]
+                       | select(.name | test("(win_" + $a + "|_" + $a + "_).*\\.zip$")) | select(.name | test("unix|linux|macos"; "i") | not)
+                       | .browser_download_url' | head -1)
+            test -n "$url"
+            echo "Using $url"
+            curl -fsSL -o "bepinex-$a.zip" "$url"
+            mkdir -p "bep-$a"
+            unzip -o -q "bepinex-$a.zip" -d "bep-$a"
+            test -f "bep-$a/BepInEx/core/BepInEx.dll"
+            test -f "bep-$a/winhttp.dll"
+          done
+          # The two downloads should differ only in the native loader. If that ever changes, stop here rather than ship a broken 32-bit install.
+          diff -r -x winhttp.dll -x changelog.txt bep-x64 bep-x86
 
-      - name: Build the plugin against the real BepInEx
-        run: dotnet build HouseEdgeInGame.csproj -c Release -p:BepInExDir=$PWD/package/BepInEx/core
+      - name: Build the plugin against the real BepInEx, and the installer
+        run: |
+          dotnet build ingame/HouseEdgeInGame.csproj -c Release -p:BepInExDir=$PWD/bep-x64/BepInEx/core
+          dotnet build installer/Installer.csproj -c Release
 
       - name: Assemble the drop-in folder
         run: |
-          mkdir -p package/BepInEx/plugins/HouseEdgeInGame
-          cp bin/HouseEdgeInGame.dll package/BepInEx/plugins/HouseEdgeInGame/
-          cp -r extras/BepInEx/. package/BepInEx/
-          cp INSTALL.txt "package/HOUSE EDGE - READ ME.txt"
+          mkdir -p package
+          cp -r bep-x64/. package/
+          rm -f package/changelog.txt
+          mkdir -p package/BepInEx/houseedge-x86 package/BepInEx/plugins/HouseEdgeInGame
+          cp bep-x86/winhttp.dll package/BepInEx/houseedge-x86/
+          cp ingame/bin/HouseEdgeInGame.dll package/BepInEx/plugins/HouseEdgeInGame/
+          cp -r ingame/extras/BepInEx/. package/BepInEx/
+          cp installer/bin/HouseEdge-Install.exe "package/Install House Edge.exe"
+          cp ingame/INSTALL.txt "package/HOUSE EDGE - READ ME.txt"
           find package -maxdepth 3 | sort
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact }}
-          path: house-edge/ingame/package/
+          name: HouseEdge-InGame-drop-into-game-folder
+          path: house-edge/package/
           include-hidden-files: true
           if-no-files-found: error
+
+  ingame-installer:
+    # Runs the real installer on Windows against stand-in game folders: one 64-bit, one 32-bit.
+    needs: ingame
+    runs-on: windows-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: HouseEdge-InGame-drop-into-game-folder
+          path: pkg
+
+      - name: Install into a 64-bit and a 32-bit stand-in game, then uninstall
+        shell: pwsh
+        run: |
+          function New-Game($dir, $exe) {
+            New-Item -ItemType Directory -Force "$dir\WereAllIn_Data\Managed", "$dir\MonoBleedingEdge" | Out-Null
+            Copy-Item $exe "$dir\WereAllIn.exe"
+            Set-Content "$dir\UnityPlayer.dll" ""
+          }
+          function Machine($path) {
+            $b = [IO.File]::ReadAllBytes($path); $pe = [BitConverter]::ToInt32($b, 0x3C); '{0:X}' -f [BitConverter]::ToUInt16($b, $pe + 4)
+          }
+          New-Game "$env:RUNNER_TEMP\Game64" "C:\Windows\System32\notepad.exe"
+          New-Game "$env:RUNNER_TEMP\Game32" "C:\Windows\SysWOW64\notepad.exe"
+
+          & ".\pkg\Install House Edge.exe" --yes "$env:RUNNER_TEMP\Game64" "$env:RUNNER_TEMP\Game32"
+          if ($LASTEXITCODE -ne 0) { throw "installer failed" }
+          foreach ($g in "Game64", "Game32") {
+            foreach ($f in "winhttp.dll", "doorstop_config.ini", "BepInEx\core\BepInEx.dll", "BepInEx\plugins\HouseEdgeInGame\HouseEdgeInGame.dll") {
+              if (-not (Test-Path "$env:RUNNER_TEMP\$g\$f")) { throw "$g is missing $f" }
+            }
+            if (Test-Path "$env:RUNNER_TEMP\$g\BepInEx\houseedge-x86") { throw "$g got the spare 32-bit loader folder" }
+          }
+          if ((Machine "$env:RUNNER_TEMP\Game64\winhttp.dll") -ne "8664") { throw "64-bit game got the wrong loader" }
+          if ((Machine "$env:RUNNER_TEMP\Game32\winhttp.dll") -ne "14C") { throw "32-bit game got the wrong loader" }
+
+          & ".\pkg\Install House Edge.exe" --yes --uninstall "$env:RUNNER_TEMP\Game64"
+          if ($LASTEXITCODE -ne 0) { throw "uninstall failed" }
+          if ((Test-Path "$env:RUNNER_TEMP\Game64\winhttp.dll") -or (Test-Path "$env:RUNNER_TEMP\Game64\BepInEx")) { throw "uninstall left files behind" }
+          "Installer put the right loader into both games and uninstalled cleanly."

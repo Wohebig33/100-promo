@@ -18,14 +18,18 @@ A mod panel (a "trainer") for single-player games, made for **We're All In**. It
 
 We're All In is a Unity game built with Mono: it ships `UnityPlayer.dll` and a `MonoBleedingEdge` folder. So the menu can live inside the game through [BepInEx](https://github.com/BepInEx/BepInEx), the standard Unity mod loader.
 
-1. Open this repo's **Actions** tab, then **House Edge (Windows build)**. Pick the latest green run and download **HouseEdge-InGame-drop-into-game-folder** (64-bit). There's also a 32-bit download for 32-bit builds of the game.
-2. In Steam, right-click the game and choose **Manage → Browse local files**.
-3. Unzip everything into that folder, next to `WereAllIn.exe`: `winhttp.dll`, `doorstop_config.ini` and the `BepInEx` folder.
+1. Open this repo's **Actions** tab, then **House Edge (Windows build)**. Pick the latest green run and download **HouseEdge-InGame-drop-into-game-folder**. It's one download for every build of the game.
+2. Right-click the zip and choose **Extract All**.
+3. Open the new folder and double-click **Install House Edge.exe**. It finds the game in your Steam libraries (full game and demo) and picks the 32-bit or 64-bit loader. When you update, it keeps your pins and settings. Run it again to update or uninstall.
 4. Play from Steam and hold **Q+E**.
 
-On Steam Deck or Linux, also set the game's Launch Options to `WINEDLLOVERRIDES="winhttp=n,b" %command%` so Proton loads BepInEx.
+**Or drop it in by hand:** in Steam, right-click the game and choose **Manage → Browse local files**. Copy what's *inside* the unzipped folder (`winhttp.dll`, `doorstop_config.ini` and the `BepInEx` folder) so it sits right next to `WereAllIn.exe`. Don't copy the unzipped folder itself.
 
-The full steps are in [`ingame/INSTALL.txt`](ingame/INSTALL.txt), which also comes inside the zip. To uninstall, delete those three items.
+On Steam Deck or Linux, drop it in by hand, then set the game's Launch Options to `WINEDLLOVERRIDES="winhttp=n,b" %command%` so Proton loads BepInEx.
+
+The full steps are in [`ingame/INSTALL.txt`](ingame/INSTALL.txt), which also comes inside the zip. To uninstall, run the installer and type U, or delete those three items.
+
+The installer is in `installer/`. It's a small .NET Framework 4.6 console app, so it runs on any Windows 10 or 11 PC with nothing extra to install. `dotnet run --project installer/tests/InstallerTest.csproj` tests it against fake Steam libraries and game folders. CI also runs the real .exe on Windows against a 64-bit and a 32-bit stand-in game.
 
 What's in the menu:
 - **Fun:** game speed from 0.1x to 5x, gravity (float, moon, heavy, upside down), field of view, an FPS counter, and pause while the menu is open.
@@ -36,7 +40,7 @@ What's in the menu:
 
 ### Every version of the game
 - **Full game and demo:** the same download works in both. Each folder keeps its own pins.
-- **64-bit and 32-bit:** CI builds a drop-in folder for each. The plugin DLL is the same.
+- **64-bit and 32-bit:** one download has both loaders. The installer reads the game's exe and picks the matching one.
 - **Game updates:** pins are saved by name, not memory address. If an update renames a class or field you pinned, the pin follows the new name when only one match fits, and the log says so.
 - **Unity versions:** the plugin uses only long-lived Unity APIs and falls back where Unity 6 retires one.
 - The log and the About tab show which build was found, as the game name and version, demo or not, the Unity version and 32/64-bit.

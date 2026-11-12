@@ -1,24 +1,32 @@
 HOUSE EDGE IN-GAME: mod menu for We're All In
 ==============================================
 
-WHICH DOWNLOAD
-- HouseEdge-InGame-drop-into-game-folder: the 64-bit one. Almost everyone needs this.
-- HouseEdge-InGame-32bit-drop-into-game-folder: only for a 32-bit build of the game.
-  Not sure? Use the 64-bit one. If the menu never shows up and LogOutput.log is missing, try the 32-bit one.
-The same download works for the full game and the demo, and keeps working after game updates.
+EASY INSTALL (double-click)
+1. Unzip the download first: right-click it and choose Extract All.
+2. Open the new folder and double-click "Install House Edge.exe".
+   It finds We're All In by itself (the full game and the demo, in any Steam library),
+   picks the 32-bit or 64-bit loader to match, and keeps your pins and settings when updating.
+   If it can't find the game, it asks you to drag the game folder into its window.
+3. Start the game from Steam. The first start takes a little longer while BepInEx sets itself up.
+4. Hold Q + E together in the game. The House Edge menu opens.
+Run the installer again any time to update or uninstall.
+If Windows shows "Windows protected your PC", choose More info, then Run anyway. The installer is unsigned.
+Dropped the whole unzipped folder into the game folder by mistake? Open it and run the installer from there.
+It installs into the game folder around it.
 
-INSTALL (about a minute)
+MANUAL INSTALL (drop in)
 1. In Steam, right-click We're All In (or We're All In Demo) and choose Manage > Browse local files.
    A folder opens with WereAllIn.exe and UnityPlayer.dll in it. For the demo it's called WereAllInDemo.
-2. Copy EVERYTHING from this zip into that folder, next to WereAllIn.exe:
+2. Copy what's INSIDE the unzipped folder into that folder, so these sit right next to WereAllIn.exe:
      winhttp.dll
      doorstop_config.ini
      BepInEx\            (folder)
-   The other files in the zip are harmless, so copying all of them is fine.
+   Not the unzipped folder itself: the game only finds winhttp.dll when it's right next to WereAllIn.exe.
+   The installer and this read-me can come along too. They're harmless.
    If Windows asks, choose "Replace".
-3. Start the game from Steam as usual. The first launch takes a little longer while BepInEx sets itself up.
-4. Hold Q + E together in the game. The House Edge menu opens.
-Have the full game and the demo? Install into each folder. They keep their own pins.
+3. Start the game from Steam and hold Q + E.
+This is for 64-bit games, which is almost all of them. For a 32-bit game, use the installer.
+Have the full game and the demo? Install into both. They keep their own pins.
 
 STEAM DECK AND LINUX (PROTON)
 Do the install above, then in Steam open the game's Properties and set Launch Options to:
@@ -49,10 +57,11 @@ CHANGE THE KEYS
 After the first launch, open BepInEx\config\houseedge.ingame.cfg and change MenuKeys (for example F1 or Ctrl+M).
 
 IF THE MENU DOESN'T SHOW UP
+- Run "Install House Edge.exe". It fixes the usual mistakes: files in a subfolder, or the wrong 32/64-bit loader.
 - Check that winhttp.dll is right next to WereAllIn.exe, not in a subfolder.
 - Look for BepInEx\LogOutput.log. If it's missing, BepInEx didn't load. Antivirus software sometimes blocks winhttp.dll.
   On Steam Deck or Linux, check the Launch Options line above.
 - Search that log for "House Edge" and send it over. It says which version of the game it found and what went wrong.
 
 UNINSTALL
-Delete winhttp.dll, doorstop_config.ini and the BepInEx folder. The game goes back to normal.
+Run "Install House Edge.exe" and type U. Or by hand: delete winhttp.dll, doorstop_config.ini and the BepInEx folder. The game goes back to normal.
