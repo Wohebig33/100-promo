@@ -22,3 +22,9 @@ The browser version needs a keyboard and mouse. Progress saves to the browser's 
 
 ## Controls
 WASD to move, click or J for melee, right-click or F to block, Space to dash, hold C to charge Malice, 1–4 for bloodline skills, Q and E for affinity skills, G for Awakening, T to interact, K for stats and skills, Esc to pause.
+
+---
+
+# We're All In: main menu
+
+There's a playable main menu for **We're All In** in [`were-all-in/`](were-all-in/README.md). Open `were-all-in/index.html` in a browser.
