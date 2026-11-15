@@ -1,13 +1,11 @@
--- ServerList (LocalScript in StarterPlayer > StarterPlayerScripts)
--- L (or typing /servers in chat) opens a list of this game's running
--- servers. Click Join to teleport to one.
+-- ServerList (ModuleScript in ReplicatedStorage > Abilities)
+-- An "Action" ability: its key (L by default) or /servers in chat opens a
+-- list of this game's running servers. Click Join to teleport to one.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local UserInputService = game:GetService("UserInputService")
 
 local CONFIG = {
-	ToggleKey = Enum.KeyCode.L,
 	RequiredAttribute = "CanServerHop",
 }
 
@@ -259,17 +257,19 @@ openServerList.OnClientEvent:Connect(function()
 	setOpen(true)
 end)
 
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-	if gameProcessed then
-		return
-	end
-	if input.KeyCode == CONFIG.ToggleKey then
-		setOpen(not gui.Enabled)
-	end
-end)
-
 player:GetAttributeChangedSignal(CONFIG.RequiredAttribute):Connect(function()
 	if not hasAbility() then
 		setOpen(false)
 	end
 end)
+
+return {
+	Name = "Server list",
+	Description = "See this game's other servers and teleport to one.",
+	Type = "Action",
+	Key = Enum.KeyCode.L,
+	RequiredAttribute = CONFIG.RequiredAttribute,
+	Activate = function()
+		setOpen(not gui.Enabled)
+	end,
+}

@@ -1,5 +1,6 @@
--- Map (LocalScript in StarterPlayer > StarterPlayerScripts)
--- M (or /map in chat) opens a full-screen top-down map with no edges.
+-- Map (ModuleScript in ReplicatedStorage > Abilities)
+-- An "Action" ability: its key (M by default) or /map in chat opens a
+-- full-screen top-down map with no edges.
 --   Drag            pan
 --   Scroll / pinch  zoom (also the + and - buttons)
 --   Right-click     add a waypoint there (or press Place, then click)
@@ -14,7 +15,6 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local CONFIG = {
-	ToggleKey = Enum.KeyCode.M,
 	RequiredAttribute = "CanTeleport",
 	DefaultScale = 1, -- pixels per stud
 	MinScale = 0.002, -- zoomed out: 1 pixel = 500 studs
@@ -819,13 +819,7 @@ end)
 
 -- Map input -----------------------------------------------------------------
 
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-	if input.KeyCode == CONFIG.ToggleKey then
-		if not gameProcessed then
-			setOpen(not isOpen)
-		end
-		return
-	end
+UserInputService.InputBegan:Connect(function(input)
 	if not isOpen then
 		return
 	end
@@ -925,3 +919,14 @@ player:GetAttributeChangedSignal(CONFIG.RequiredAttribute):Connect(function()
 		setOpen(false)
 	end
 end)
+
+return {
+	Name = "Map",
+	Description = "Map with your waypoints. Drag to move, scroll to zoom, right-click to add a waypoint.",
+	Type = "Action",
+	Key = Enum.KeyCode.M,
+	RequiredAttribute = CONFIG.RequiredAttribute,
+	Activate = function()
+		setOpen(not isOpen)
+	end,
+}

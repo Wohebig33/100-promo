@@ -1,15 +1,11 @@
--- ESP (LocalScript in StarterPlayer > StarterPlayerScripts)
--- G toggles ESP: highlights other players through walls and shows
--- name / health / distance above their heads.
--- Note: Roblox renders at most 31 Highlights at once.
+-- ESP (ModuleScript in ReplicatedStorage > Abilities)
+-- Highlights other players through walls and shows their name, health
+-- and distance. Roblox renders at most 31 Highlights at once.
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
 
-local CONFIG = {
-	ToggleKey = Enum.KeyCode.G,
-	RequiredAttribute = "CanSeeESP",
+local SETTINGS = {
 	MaxDistance = 1000, -- studs
 	ShowTeammates = false,
 	EnemyColor = Color3.fromRGB(255, 70, 70),
@@ -17,13 +13,17 @@ local CONFIG = {
 	FillTransparency = 0.6,
 }
 
+local ESP = {
+	Name = "ESP",
+	Description = "See other players through walls, with their name, health and distance.",
+	Type = "Toggle",
+	Key = Enum.KeyCode.G,
+	RequiredAttribute = "CanSeeESP",
+}
+
 local player = Players.LocalPlayer
 local enabled = false
 local tracked = {} -- [Player] = { highlight, billboard, label }
-
-local function hasAbility()
-	return player:GetAttribute(CONFIG.RequiredAttribute) == true
-end
 
 local function isTeammate(other)
 	return not player.Neutral and not other.Neutral and other.Team == player.Team
@@ -53,7 +53,7 @@ local function createVisuals(other)
 	local highlight = Instance.new("Highlight")
 	highlight.Name = "ESPHighlight"
 	highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-	highlight.FillTransparency = CONFIG.FillTransparency
+	highlight.FillTransparency = SETTINGS.FillTransparency
 	highlight.OutlineTransparency = 0
 	highlight.Adornee = character
 	highlight.Enabled = false
@@ -80,7 +80,7 @@ local function createVisuals(other)
 	tracked[other] = { highlight = highlight, billboard = billboard, label = label }
 end
 
-RunService.Heartbeat:Connect(function()
+local function update()
 	local myRoot = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 
 	for other, v in pairs(tracked) do
@@ -94,14 +94,14 @@ RunService.Heartbeat:Connect(function()
 			and root ~= nil
 			and hum ~= nil
 			and hum.Health > 0
-			and distance <= CONFIG.MaxDistance
-			and (CONFIG.ShowTeammates or not isTeammate(other))
+			and distance <= SETTINGS.MaxDistance
+			and (SETTINGS.ShowTeammates or not isTeammate(other))
 
 		v.highlight.Enabled = visible
 		v.billboard.Enabled = visible
 
 		if visible then
-			local color = isTeammate(other) and CONFIG.TeamColor or CONFIG.EnemyColor
+			local color = isTeammate(other) and SETTINGS.TeamColor or SETTINGS.EnemyColor
 			v.highlight.FillColor = color
 			v.highlight.OutlineColor = color
 			v.label.TextColor3 = color
@@ -113,7 +113,7 @@ RunService.Heartbeat:Connect(function()
 			)
 		end
 	end
-end)
+end
 
 local function watchPlayer(other)
 	if other == player then
@@ -128,25 +128,21 @@ local function watchPlayer(other)
 	end
 end
 
-for _, other in ipairs(Players:GetPlayers()) do
-	watchPlayer(other)
+function ESP.Init()
+	for _, other in ipairs(Players:GetPlayers()) do
+		watchPlayer(other)
+	end
+	Players.PlayerAdded:Connect(watchPlayer)
+	Players.PlayerRemoving:Connect(removeVisuals)
+	RunService.Heartbeat:Connect(update)
 end
-Players.PlayerAdded:Connect(watchPlayer)
-Players.PlayerRemoving:Connect(removeVisuals)
 
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-	if gameProcessed then
-		return
-	end
-	if input.KeyCode == CONFIG.ToggleKey and hasAbility() then
-		enabled = not enabled
-		player:SetAttribute("ESPActive", enabled) -- read by the HUD
-	end
-end)
+function ESP.Enable()
+	enabled = true
+end
 
-player:GetAttributeChangedSignal(CONFIG.RequiredAttribute):Connect(function()
-	if not hasAbility() then
-		enabled = false
-		player:SetAttribute("ESPActive", false)
-	end
-end)
+function ESP.Disable()
+	enabled = false
+end
+
+return ESP
