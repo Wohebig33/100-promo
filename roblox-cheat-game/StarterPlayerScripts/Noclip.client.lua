@@ -44,6 +44,7 @@ local function setEnabled(on)
 		return
 	end
 	enabled = on
+	player:SetAttribute("NoclipActive", on) -- read by the HUD
 	if not on then
 		restoreCollisions()
 	end

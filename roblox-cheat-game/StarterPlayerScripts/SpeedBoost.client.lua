@@ -24,6 +24,7 @@ local humanoid = nil
 local baseSpeed = nil -- the WalkSpeed the game set, restored when off
 local appliedSpeed = nil
 local speedConnection = nil
+player:SetAttribute("SpeedBoostMultiplier", multiplier) -- read by the HUD
 
 local function notify(text)
 	pcall(function()
@@ -72,6 +73,7 @@ local function setEnabled(on)
 		return
 	end
 	enabled = on
+	player:SetAttribute("SpeedBoostActive", on) -- read by the HUD
 	if on then
 		if humanoid then
 			baseSpeed = humanoid.WalkSpeed
@@ -89,6 +91,7 @@ end
 
 local function changeMultiplier(delta)
 	multiplier = math.clamp(multiplier + delta, CONFIG.MinMultiplier, CONFIG.MaxMultiplier)
+	player:SetAttribute("SpeedBoostMultiplier", multiplier)
 	apply()
 	notify(string.format("x%g", multiplier))
 end

@@ -12,6 +12,7 @@ Paste each file into Roblox Studio as described below.
 | `StarterPlayerScripts/Map.client.lua` | LocalScript | StarterPlayer > StarterPlayerScripts |
 | `StarterPlayerScripts/Noclip.client.lua` | LocalScript | StarterPlayer > StarterPlayerScripts |
 | `StarterPlayerScripts/SpeedBoost.client.lua` | LocalScript | StarterPlayer > StarterPlayerScripts |
+| `StarterPlayerScripts/AbilityHUD.client.lua` | LocalScript | StarterPlayer > StarterPlayerScripts |
 | `StarterPlayerScripts/Flight.client.lua` | LocalScript | StarterPlayer > StarterPlayerScripts |
 | `StarterPlayerScripts/ESP.client.lua` | LocalScript | StarterPlayer > StarterPlayerScripts |
 | `StarterPlayerScripts/AimAssist.client.lua` | LocalScript | StarterPlayer > StarterPlayerScripts |
@@ -27,6 +28,7 @@ Paste each file into Roblox Studio as described below.
 | **H** | Toggle aim assist (hold right-click to pull toward a target) |
 | **N** | Toggle noclip (walk through walls; pair with flight to go through floors) |
 | **B** | Toggle speed boost (x3 by default; **]** faster, **[** slower, x1.5 to x10) |
+| **K** | Hide / show the abilities HUD (right edge of the screen) |
 | **L** or `/servers` | Open the server list and teleport to another server |
 | **M** or `/map` | Open the map (see below) |
 | `/tp <x> <y> <z>` | Teleport to coordinates. `~` means your current value, `~5` means yours + 5 |

@@ -140,11 +140,13 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	end
 	if input.KeyCode == CONFIG.ToggleKey and hasAbility() then
 		enabled = not enabled
+		player:SetAttribute("ESPActive", enabled) -- read by the HUD
 	end
 end)
 
 player:GetAttributeChangedSignal(CONFIG.RequiredAttribute):Connect(function()
 	if not hasAbility() then
 		enabled = false
+		player:SetAttribute("ESPActive", false)
 	end
 end)

@@ -38,6 +38,7 @@ local function stopFlying()
 		return
 	end
 	flying = false
+	player:SetAttribute("FlightActive", false) -- read by the HUD
 	destroyMovers()
 	currentVelocity = Vector3.zero
 	if humanoid and humanoid.Parent then
@@ -54,6 +55,7 @@ local function startFlying()
 		return
 	end
 	flying = true
+	player:SetAttribute("FlightActive", true)
 
 	attachment = Instance.new("Attachment")
 	attachment.Name = "FlightAttachment"
