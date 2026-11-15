@@ -10,6 +10,8 @@ Paste each file into Roblox Studio as described below.
 | `ServerScriptService/Map.server.lua` | Script | ServerScriptService |
 | `ServerScriptService/TeleportUtil.lua` | **ModuleScript** named `TeleportUtil` | ServerScriptService |
 | `StarterPlayerScripts/Map.client.lua` | LocalScript | StarterPlayer > StarterPlayerScripts |
+| `StarterPlayerScripts/Noclip.client.lua` | LocalScript | StarterPlayer > StarterPlayerScripts |
+| `StarterPlayerScripts/SpeedBoost.client.lua` | LocalScript | StarterPlayer > StarterPlayerScripts |
 | `StarterPlayerScripts/Flight.client.lua` | LocalScript | StarterPlayer > StarterPlayerScripts |
 | `StarterPlayerScripts/ESP.client.lua` | LocalScript | StarterPlayer > StarterPlayerScripts |
 | `StarterPlayerScripts/AimAssist.client.lua` | LocalScript | StarterPlayer > StarterPlayerScripts |
@@ -23,6 +25,8 @@ Paste each file into Roblox Studio as described below.
 | **F** | Toggle flight (WASD, Space up, Left Ctrl down, Shift boost) |
 | **G** | Toggle ESP (highlights + name / health / distance) |
 | **H** | Toggle aim assist (hold right-click to pull toward a target) |
+| **N** | Toggle noclip (walk through walls; pair with flight to go through floors) |
+| **B** | Toggle speed boost (x3 by default; **]** faster, **[** slower, x1.5 to x10) |
 | **L** or `/servers` | Open the server list and teleport to another server |
 | **M** or `/map` | Open the map (see below) |
 | `/tp <x> <y> <z>` | Teleport to coordinates. `~` means your current value, `~5` means yours + 5 |
@@ -58,7 +62,8 @@ Paste each file into Roblox Studio as described below.
 ## Permissions
 
 - `AbilityGrants` gives every player the `CanFly`, `CanSeeESP`,
-  `CanAimAssist`, `CanServerHop` and `CanTeleport` attributes. Change it to tie powers
+  `CanAimAssist`, `CanServerHop`, `CanTeleport`, `CanNoclip` and
+  `CanSpeedBoost` attributes. Change it to tie powers
   to game passes, pickups, teams, etc.
 - `/kill` on yourself works for everyone. Killing other players needs
   admin: the game owner, a UserId in `Commands`' `Admins` list, or a
