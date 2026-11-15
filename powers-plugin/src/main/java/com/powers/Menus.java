@@ -25,13 +25,15 @@ import java.util.List;
  * Items can't be taken out; clicks are handled here.
  */
 public final class Menus implements Listener {
-    // Main menu layout (27 slots)
+    // Main menu layout (27 slots): powers across the middle row, extras below
     private static final int SLOT_FLY = 10;
     private static final int SLOT_SPEED = 11;
     private static final int SLOT_NOCLIP = 12;
     private static final int SLOT_TRACKER = 13;
-    private static final int SLOT_WAYPOINTS = 15;
-    private static final int SLOT_ALL_OFF = 16;
+    private static final int SLOT_ESP = 14;
+    private static final int SLOT_AIM = 15;
+    private static final int SLOT_WAYPOINTS = 21;
+    private static final int SLOT_ALL_OFF = 23;
 
     // Waypoint menu layout (54 slots): 0-44 waypoints, bottom row controls
     private static final int WAYPOINT_SLOTS = 45;
@@ -117,6 +119,21 @@ public final class Menus implements Listener {
                 Component.empty(),
                 line("Click: turn on / off", NamedTextColor.GRAY))));
 
+        inv.setItem(SLOT_ESP, powerItem(player, Power.ESP, Material.SPYGLASS, List.of(
+                line("See players' names, health and distance", NamedTextColor.WHITE),
+                line("through walls. Only you see the labels.", NamedTextColor.WHITE),
+                Component.empty(),
+                line("Click: turn on / off", NamedTextColor.GRAY))));
+
+        int aim = powers.aimStrength(player);
+        inv.setItem(SLOT_AIM, powerItem(player, Power.AIM_ASSIST, Material.BOW, List.of(
+                line("Strength: " + aim + "/" + PowerManager.MAX_AIM_STRENGTH, NamedTextColor.WHITE),
+                line(aimTriggerText(), NamedTextColor.WHITE),
+                Component.empty(),
+                line("Left-click: turn on / off", NamedTextColor.GRAY),
+                line("Right-click: stronger", NamedTextColor.GRAY),
+                line("Shift + right-click: weaker", NamedTextColor.GRAY))));
+
         if (player.hasPermission("powers.waypoints")) {
             int count = waypoints.list(player).size();
             inv.setItem(SLOT_WAYPOINTS, item(Material.LODESTONE, title("Waypoints", NamedTextColor.AQUA), List.of(
@@ -129,6 +146,15 @@ public final class Menus implements Listener {
 
         inv.setItem(SLOT_ALL_OFF, item(Material.BARRIER, title("Turn everything off", NamedTextColor.RED),
                 List.of(line("Click: turn off every power", NamedTextColor.GRAY)), false));
+    }
+
+    private String aimTriggerText() {
+        String trigger = plugin.getConfig().getString("aim-assist.trigger", "ranged");
+        return switch (trigger.toLowerCase(java.util.Locale.ROOT)) {
+            case "always" -> "Pulls your aim toward the nearest target.";
+            case "sneak" -> "Pulls your aim while you sneak.";
+            default -> "Pulls your aim while drawing a bow or trident.";
+        };
     }
 
     private ItemStack powerItem(Player player, Power power, Material material, List<Component> details) {
@@ -223,6 +249,15 @@ public final class Menus implements Listener {
             }
             case SLOT_NOCLIP -> powers.toggle(player, Power.NOCLIP);
             case SLOT_TRACKER -> powers.toggle(player, Power.TRACKER);
+            case SLOT_ESP -> powers.toggle(player, Power.ESP);
+            case SLOT_AIM -> {
+                if (click.isLeftClick()) {
+                    powers.toggle(player, Power.AIM_ASSIST);
+                } else if (click.isRightClick() && player.hasPermission(Power.AIM_ASSIST.permission())) {
+                    int change = click.isShiftClick() ? -1 : 1;
+                    powers.setAimStrength(player, powers.aimStrength(player) + change);
+                }
+            }
             case SLOT_WAYPOINTS -> {
                 if (player.hasPermission("powers.waypoints")) {
                     nextTick(() -> openWaypoints(player));

@@ -34,6 +34,10 @@ public final class PowerManager {
     public static final double SPEED_STEP = 0.5;
     public static final double DEFAULT_SPEED = 2.0;
 
+    public static final int MIN_AIM_STRENGTH = 1;
+    public static final int MAX_AIM_STRENGTH = 10; // 10 = snaps straight onto the target
+    public static final int DEFAULT_AIM_STRENGTH = 3;
+
     private static final float DEFAULT_WALK_SPEED = 0.2f;
     private static final float DEFAULT_FLY_SPEED = 0.1f;
     private static final String[] ARROWS = {"↑", "↗", "→", "↘", "↓", "↙", "←", "↖"};
@@ -41,6 +45,9 @@ public final class PowerManager {
     private final PowersPlugin plugin;
     private final NamespacedKey flyLevelKey;
     private final NamespacedKey speedKey;
+    private final NamespacedKey aimKey;
+    private final EspManager esp;
+    private final AimAssistManager aimAssist;
     private final Map<UUID, State> states = new HashMap<>();
     private final Map<UUID, BossBar> bars = new HashMap<>();
     private boolean changingGameMode = false;
@@ -54,6 +61,9 @@ public final class PowerManager {
         this.plugin = plugin;
         this.flyLevelKey = new NamespacedKey(plugin, "fly_level");
         this.speedKey = new NamespacedKey(plugin, "speed_multiplier");
+        this.aimKey = new NamespacedKey(plugin, "aim_strength");
+        this.esp = new EspManager(plugin, this);
+        this.aimAssist = new AimAssistManager(plugin, this);
     }
 
     private State state(Player player) {
@@ -99,6 +109,14 @@ public final class PowerManager {
                     player.sendActionBar(Component.empty());
                 }
             }
+            case ESP -> {
+                if (!on) {
+                    esp.clear(player);
+                }
+            }
+            case AIM_ASSIST -> {
+                // nothing to apply; the aim task checks isOn every tick
+            }
         }
         updateHud(player);
         return true;
@@ -120,6 +138,7 @@ public final class PowerManager {
         for (Player player : List.copyOf(plugin.getServer().getOnlinePlayers())) {
             disableAll(player);
         }
+        esp.removeAll();
     }
 
     // Settings ----------------------------------------------------------------
@@ -150,6 +169,19 @@ public final class PowerManager {
         applySpeed(player);
         updateHud(player);
         return snapped;
+    }
+
+    public int aimStrength(Player player) {
+        Integer stored = player.getPersistentDataContainer().get(aimKey, PersistentDataType.INTEGER);
+        int strength = stored == null ? DEFAULT_AIM_STRENGTH : stored;
+        return Math.clamp(strength, MIN_AIM_STRENGTH, MAX_AIM_STRENGTH);
+    }
+
+    public int setAimStrength(Player player, int strength) {
+        int clamped = Math.clamp(strength, MIN_AIM_STRENGTH, MAX_AIM_STRENGTH);
+        player.getPersistentDataContainer().set(aimKey, PersistentDataType.INTEGER, clamped);
+        updateHud(player);
+        return clamped;
     }
 
     private static double snapSpeed(double value) {
@@ -241,6 +273,7 @@ public final class PowerManager {
             String text = switch (power) {
                 case FLY -> "Fly " + flyLevel(player);
                 case SPEED -> "Speed x" + Messages.number(speedMultiplier(player));
+                case AIM_ASSIST -> "Aim " + aimStrength(player);
                 default -> power.displayName();
             };
             parts.add(Component.text(text, NamedTextColor.GREEN));
@@ -270,6 +303,8 @@ public final class PowerManager {
 
     public void startTasks() {
         plugin.getServer().getScheduler().runTaskTimer(plugin, this::updateTrackers, 20L, 10L);
+        plugin.getServer().getScheduler().runTaskTimer(plugin, esp::tick, 20L, 2L);
+        plugin.getServer().getScheduler().runTaskTimer(plugin, aimAssist::tick, 20L, 1L);
     }
 
     private void updateTrackers() {

@@ -2,7 +2,7 @@ name: Powers
 version: '${project.version}'
 main: com.powers.PowersPlugin
 api-version: '26.3'
-description: Fly, speed boost, noclip, a player tracker and waypoints, with an in-game menu.
+description: Fly, speed boost, noclip, a player tracker, ESP, aim assist and waypoints, with an in-game menu.
 
 commands:
   powers:
@@ -29,6 +29,15 @@ commands:
     description: Show the nearest players on your action bar.
     usage: /tracker
     permission: powers.tracker
+  esp:
+    description: See players' names, health and distance through walls.
+    usage: /esp
+    permission: powers.esp
+  aimassist:
+    description: Turn aim assist on or off, or set its strength.
+    usage: /aimassist [1-10]
+    aliases: [aim]
+    permission: powers.aimassist
   waypoint:
     description: Open your waypoints, or manage them by name.
     usage: /waypoint [set|go|delete|list] [name]
@@ -45,6 +54,8 @@ permissions:
       powers.speed: true
       powers.noclip: true
       powers.tracker: true
+      powers.esp: true
+      powers.aimassist: true
       powers.waypoints: true
   powers.menu:
     description: Open the powers menu.
@@ -60,6 +71,12 @@ permissions:
     default: op
   powers.tracker:
     description: Use the player tracker.
+    default: op
+  powers.esp:
+    description: Use ESP.
+    default: op
+  powers.aimassist:
+    description: Use aim assist.
     default: op
   powers.waypoints:
     description: Save and travel to waypoints.

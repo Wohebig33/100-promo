@@ -5,7 +5,9 @@ public enum Power {
     FLY("Fly", "powers.fly"),
     SPEED("Speed boost", "powers.speed"),
     NOCLIP("Noclip", "powers.noclip"),
-    TRACKER("Tracker", "powers.tracker");
+    TRACKER("Tracker", "powers.tracker"),
+    ESP("ESP", "powers.esp"),
+    AIM_ASSIST("Aim assist", "powers.aimassist");
 
     private final String displayName;
     private final String permission;

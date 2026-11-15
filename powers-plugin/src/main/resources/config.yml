@@ -7,3 +7,21 @@ tracker-range: 2000
 
 # The most waypoints one player can save. The menu shows up to 45.
 max-waypoints: 45
+
+esp:
+  # How far away players get a label, in blocks. Labels also need to be
+  # within the server's entity tracking range to reach the client.
+  range: 96
+
+aim-assist:
+  # When aim assist turns your view:
+  #   ranged - while drawing a bow, charging a crossbow or readying a trident
+  #   sneak  - while sneaking
+  #   always - whenever aim assist is on
+  trigger: ranged
+  # How far away targets can be, in blocks.
+  range: 48
+  # Only targets within this many degrees of where you're looking.
+  fov: 30
+  # Also aim at mobs, not just players.
+  target-mobs: false

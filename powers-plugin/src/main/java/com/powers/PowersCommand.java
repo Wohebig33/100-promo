@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
-/** Handles /powers, /fly, /flyspeed, /speed, /noclip, /tracker and /waypoint. */
+/** Handles /powers, /fly, /flyspeed, /speed, /noclip, /tracker, /esp, /aimassist and /waypoint. */
 public final class PowersCommand implements TabExecutor {
     private static final List<String> WAYPOINT_SUBCOMMANDS = List.of("set", "go", "delete", "list");
 
@@ -37,6 +37,8 @@ public final class PowersCommand implements TabExecutor {
             case "fly" -> toggle(player, Power.FLY);
             case "noclip" -> toggle(player, Power.NOCLIP);
             case "tracker" -> toggle(player, Power.TRACKER);
+            case "esp" -> toggle(player, Power.ESP);
+            case "aimassist" -> aimAssist(player, args);
             case "flyspeed" -> flySpeed(player, args);
             case "speed" -> speed(player, args);
             case "waypoint" -> waypoint(player, args);
@@ -78,6 +80,20 @@ public final class PowersCommand implements TabExecutor {
             Messages.success(player, "Speed boost on at x" + Messages.number(multiplier) + ".");
         } catch (NumberFormatException e) {
             Messages.error(player, "Speed must be a number from 1.5 to 5.");
+        }
+    }
+
+    private void aimAssist(Player player, String[] args) {
+        if (args.length == 0) {
+            toggle(player, Power.AIM_ASSIST);
+            return;
+        }
+        try {
+            int strength = powers.setAimStrength(player, Integer.parseInt(args[0]));
+            powers.setEnabled(player, Power.AIM_ASSIST, true);
+            Messages.success(player, "Aim assist on at strength " + strength + ".");
+        } catch (NumberFormatException e) {
+            Messages.error(player, "Strength must be a whole number from 1 to 10.");
         }
     }
 
@@ -156,7 +172,7 @@ public final class PowersCommand implements TabExecutor {
         }
         String current = args[args.length - 1].toLowerCase(Locale.ROOT);
         List<String> options = switch (command.getName().toLowerCase(Locale.ROOT)) {
-            case "flyspeed" -> args.length == 1
+            case "flyspeed", "aimassist" -> args.length == 1
                     ? List.of("1", "2", "3", "4", "5", "6", "7", "8", "9", "10") : List.of();
             case "speed" -> args.length == 1
                     ? List.of("1.5", "2", "2.5", "3", "3.5", "4", "4.5", "5") : List.of();

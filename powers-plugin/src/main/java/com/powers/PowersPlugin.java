@@ -6,7 +6,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.util.List;
 
 /**
- * Powers: fly, speed boost, noclip, a player tracker and waypoints,
+ * Powers: fly, speed boost, noclip, a player tracker, ESP, aim assist and waypoints,
  * controlled from an in-game menu (/powers, or sneak + swap-hands key).
  * Everything runs on the server and is gated by permissions.
  */
@@ -22,7 +22,8 @@ public final class PowersPlugin extends JavaPlugin {
         Menus menus = new Menus(this, powers, waypoints);
 
         PowersCommand executor = new PowersCommand(powers, waypoints, menus);
-        for (String name : List.of("powers", "fly", "flyspeed", "speed", "noclip", "tracker", "waypoint")) {
+        for (String name : List.of("powers", "fly", "flyspeed", "speed", "noclip", "tracker", "esp", "aimassist",
+                "waypoint")) {
             PluginCommand command = getCommand(name);
             if (command == null) {
                 getLogger().severe("Command /" + name + " is missing from plugin.yml");
