@@ -6,16 +6,26 @@
 --   /kill @r              kill a random player
 --   /kill @p              kill the nearest other player
 --   /kill @s              kill yourself
+--   /tp <x> <y> <z>       teleport to coordinates (~ and ~5 mean relative to you)
+--   /tp <player>          teleport to a player
+--   /tp <who> <player>    teleport players to a player
+--   /tp <who> <x> <y> <z> teleport players to coordinates
+--   /map                  open the map
 --   /servers              open the server list
--- Killing *other* players needs admin unless AnyoneCanKillOthers is true.
+-- Killing or teleporting *other* players needs admin unless the
+-- matching AnyoneCan... option below is true.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local ServerScriptService = game:GetService("ServerScriptService")
 local TextChatService = game:GetService("TextChatService")
+
+local TeleportUtil = require(ServerScriptService:WaitForChild("TeleportUtil"))
 
 local CONFIG = {
 	AnyoneCanKillOthers = false,
+	AnyoneCanTeleportOthers = false,
 	-- UserIds allowed to target other players. The game's owner and anyone
 	-- with the "IsAdmin" attribute are always admins. In Studio, everyone is.
 	Admins = {
@@ -41,6 +51,7 @@ end
 
 local feedback = getRemote("RemoteEvent", "CommandFeedback")
 local openServerList = getRemote("RemoteEvent", "OpenServerList")
+local openMap = getRemote("RemoteEvent", "OpenMap")
 
 local function tell(player, text, isError)
 	feedback:FireClient(player, text, isError == true)
@@ -171,8 +182,135 @@ local function cmdServers(sender)
 	openServerList:FireClient(sender)
 end
 
+-- /tp ---------------------------------------------------------------------
+
+-- "10" -> 10, "~" -> base, "~5" -> base + 5
+local function parseCoordinate(token, base)
+	if token == "~" then
+		return base
+	end
+	local offset = string.match(token, "^~(.+)$")
+	local value = tonumber(offset or token)
+	if not value then
+		return nil
+	end
+	return offset and base + value or value
+end
+
+local function parsePosition(sender, x, y, z)
+	local root = rootOf(sender)
+	local base = root and root.Position or Vector3.zero
+	local px = parseCoordinate(x, base.X)
+	local py = parseCoordinate(y, base.Y)
+	local pz = parseCoordinate(z, base.Z)
+	if not (px and py and pz) then
+		return nil, "Coordinates must be numbers, ~ or ~<offset>."
+	end
+	local position = Vector3.new(px, py, pz)
+	if not TeleportUtil.isValidPosition(position) then
+		return nil, "Those coordinates are out of range."
+	end
+	return position
+end
+
+local function resolveOne(sender, selector)
+	local found, err = resolveTargets(sender, selector)
+	if not found then
+		return nil, err
+	end
+	if #found ~= 1 then
+		return nil, "The destination must be a single player."
+	end
+	return found[1]
+end
+
+local TP_USAGE = "Usage: /tp <x> <y> <z>  |  /tp <player>  |  /tp <who> <player>  |  /tp <who> <x> <y> <z>"
+
+local function cmdTp(sender, args)
+	if sender:GetAttribute("CanTeleport") ~= true then
+		tell(sender, "You can't teleport.", true)
+		return
+	end
+
+	local targets, destination, err
+	if #args == 1 then
+		targets = { sender }
+		destination, err = resolveOne(sender, args[1])
+	elseif #args == 2 then
+		targets, err = resolveTargets(sender, args[1])
+		if targets then
+			destination, err = resolveOne(sender, args[2])
+		end
+	elseif #args == 3 then
+		targets = { sender }
+		destination, err = parsePosition(sender, args[1], args[2], args[3])
+	elseif #args == 4 then
+		targets, err = resolveTargets(sender, args[1])
+		if targets then
+			destination, err = parsePosition(sender, args[2], args[3], args[4])
+		end
+	end
+	if not (targets and destination) then
+		tell(sender, err or TP_USAGE, true)
+		return
+	end
+
+	if not (CONFIG.AnyoneCanTeleportOthers or isAdmin(sender)) then
+		for _, target in ipairs(targets) do
+			if target ~= sender then
+				tell(sender, "You don't have permission to teleport other players.", true)
+				return
+			end
+		end
+	end
+
+	local position, placeName
+	if typeof(destination) == "Vector3" then
+		position, placeName = destination, TeleportUtil.formatPosition(destination)
+	else
+		local destRoot = rootOf(destination)
+		if not destRoot then
+			tell(sender, destination.DisplayName .. " isn't spawned in.", true)
+			return
+		end
+		-- Land just behind them instead of inside them.
+		position = (destRoot.CFrame * CFrame.new(0, 0, 3)).Position
+		placeName = destination.DisplayName
+	end
+
+	local moved, lastError = {}, nil
+	for _, target in ipairs(targets) do
+		if target ~= destination then
+			local ok, teleportErr = TeleportUtil.teleport(target, position)
+			if ok then
+				table.insert(moved, target.DisplayName)
+			else
+				lastError = teleportErr
+			end
+		end
+	end
+
+	if #moved == 0 then
+		tell(sender, lastError or "Nobody was teleported.", true)
+	elseif #moved == 1 then
+		tell(sender, string.format("Teleported %s to %s", moved[1], placeName))
+	else
+		tell(sender, string.format("Teleported %d players to %s", #moved, placeName))
+	end
+end
+
+local function cmdMap(sender)
+	if sender:GetAttribute("CanTeleport") ~= true then
+		tell(sender, "You can't use the map.", true)
+		return
+	end
+	openMap:FireClient(sender)
+end
+
 local COMMANDS = {
 	kill = cmdKill,
+	tp = cmdTp,
+	map = cmdMap,
 	servers = cmdServers,
 }
 

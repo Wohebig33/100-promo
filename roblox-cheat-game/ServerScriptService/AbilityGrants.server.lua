@@ -12,6 +12,7 @@ local ABILITIES = {
 	"CanSeeESP",
 	"CanAimAssist",
 	"CanServerHop",
+	"CanTeleport",
 }
 
 local function grant(player)
