@@ -42,9 +42,10 @@ folder, and keeping both would run everything twice.
 - **Menu** (**Right Shift**, or click the HUD):
   - **ON / OFF** turns a toggle ability on or off. **Use** runs an action
     ability, like opening the map.
-  - **Sliders** adjust an ability's settings, such as Flight's **Fly
-    speed** (10 to 500 studs/s, default 60). Changes apply immediately,
-    even mid-flight.
+  - **Sliders** adjust an ability's settings and apply immediately:
+    Flight's **Fly speed** (10 to 500 studs/s, default 60) and Speed
+    boost's **Speed** (x1.5 to x10, default x3). Speed boost's Faster and
+    Slower keys move its slider too.
   - **Rebinding:** click a key button and press any keyboard key, mouse
     button or controller button. Every key can be rebound, including extra
     ones such as Flight's up/down/boost, Aim assist's hold-to-aim and
@@ -123,7 +124,7 @@ All fields:
 
 `ctx` gives you `ctx.Player`, `ctx.SetEnabled(bool)`, `ctx.IsEnabled()`,
 `ctx.IsBindDown(id)` (for held keys), `ctx.GetBindName(id)`,
-`ctx.GetSetting(id)`,
+`ctx.GetSetting(id)`, `ctx.SetSetting(id, value)` (moves the slider too),
 `ctx.SetStatus(text)` (replaces "ON" in the HUD) and `ctx.Notify(text)`.
 
 If a module errors, its card shows the error and the other abilities keep

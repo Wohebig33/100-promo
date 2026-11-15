@@ -37,6 +37,7 @@
 --
 -- ctx gives the ability: ctx.Player, ctx.SetEnabled(bool), ctx.IsEnabled(),
 -- ctx.IsBindDown(id), ctx.GetBindName(id), ctx.GetSetting(id),
+-- ctx.SetSetting(id, value) (moves the slider too),
 -- ctx.SetStatus(text) (shown in the HUD while on) and ctx.Notify(text).
 
 local Players = game:GetService("Players")
@@ -468,6 +469,18 @@ local function makeContext(entry)
 		end,
 		GetSetting = function(settingId)
 			return entry.settings[settingId]
+		end,
+		SetSetting = function(settingId, value)
+			if type(value) ~= "number" then
+				return
+			end
+			for _, settingDef in ipairs(entry.settingList) do
+				if settingDef.id == settingId then
+					setSetting(entry, settingDef, value) -- clamps and snaps to Step
+					refreshAll()
+					return
+				end
+			end
 		end,
 		SetStatus = function(text)
 			entry.status = text and tostring(text) or nil
