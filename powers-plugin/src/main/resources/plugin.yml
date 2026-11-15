@@ -1,0 +1,66 @@
+name: Powers
+version: '${project.version}'
+main: com.powers.PowersPlugin
+api-version: '26.3'
+description: Fly, speed boost, noclip, a player tracker and waypoints, with an in-game menu.
+
+commands:
+  powers:
+    description: Open the powers menu.
+    usage: /powers
+    permission: powers.menu
+  fly:
+    description: Turn flight on or off.
+    usage: /fly
+    permission: powers.fly
+  flyspeed:
+    description: Set your fly speed (1-10).
+    usage: /flyspeed <1-10>
+    permission: powers.fly
+  speed:
+    description: Turn the speed boost on or off, or set its multiplier.
+    usage: /speed [1.5-5]
+    permission: powers.speed
+  noclip:
+    description: Turn noclip on or off.
+    usage: /noclip
+    permission: powers.noclip
+  tracker:
+    description: Show the nearest players on your action bar.
+    usage: /tracker
+    permission: powers.tracker
+  waypoint:
+    description: Open your waypoints, or manage them by name.
+    usage: /waypoint [set|go|delete|list] [name]
+    aliases: [wp, waypoints]
+    permission: powers.waypoints
+
+permissions:
+  powers.*:
+    description: Every power.
+    default: op
+    children:
+      powers.menu: true
+      powers.fly: true
+      powers.speed: true
+      powers.noclip: true
+      powers.tracker: true
+      powers.waypoints: true
+  powers.menu:
+    description: Open the powers menu.
+    default: op
+  powers.fly:
+    description: Use flight and set fly speed.
+    default: op
+  powers.speed:
+    description: Use the speed boost.
+    default: op
+  powers.noclip:
+    description: Use noclip.
+    default: op
+  powers.tracker:
+    description: Use the player tracker.
+    default: op
+  powers.waypoints:
+    description: Save and travel to waypoints.
+    default: op

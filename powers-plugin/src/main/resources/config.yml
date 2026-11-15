@@ -1,0 +1,9 @@
+# Sneaking and pressing the swap-hands key (F by default) opens the
+# powers menu. Players can change that key in Minecraft's Controls settings.
+menu-shortcut: true
+
+# How far the tracker looks for other players, in blocks.
+tracker-range: 2000
+
+# The most waypoints one player can save. The menu shows up to 45.
+max-waypoints: 45
