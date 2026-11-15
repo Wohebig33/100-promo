@@ -23,6 +23,10 @@
 --       Binds = {                        -- optional extra rebindable keys
 --           { Id = "Higher", Name = "Jump higher", Default = Enum.KeyCode.Equals },
 --       },
+--       Settings = {                     -- optional sliders shown in the menu
+--           { Id = "Power", Name = "Jump power", Min = 50, Max = 500, Step = 10, Default = 150 },
+--       },
+--       OnSettingChanged = function(ctx, id, value) end, -- optional
 --       Init = function(ctx) end,        -- optional, runs once when loaded
 --       Enable = function(ctx) end,      -- Toggle: turned on (return false to refuse)
 --       Disable = function(ctx) end,     -- Toggle: turned off
@@ -32,8 +36,8 @@
 --   }
 --
 -- ctx gives the ability: ctx.Player, ctx.SetEnabled(bool), ctx.IsEnabled(),
--- ctx.IsBindDown(id), ctx.GetBindName(id), ctx.SetStatus(text) (shown in
--- the HUD while on) and ctx.Notify(text).
+-- ctx.IsBindDown(id), ctx.GetBindName(id), ctx.GetSetting(id),
+-- ctx.SetStatus(text) (shown in the HUD while on) and ctx.Notify(text).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -219,6 +223,8 @@ local menuEntry = {
 	binds = { Main = CONFIG.DefaultMenuKey },
 }
 local savedBinds = {} -- [abilityId] = { [bindId] = "Enum.KeyCode.F" | "none" }
+local savedSettings = {} -- [abilityId] = { [settingId] = number }
+local activeSlider = nil -- the slider being dragged
 local hudVisible = true
 local menuOpen = false
 local capturing = nil -- { owner = entry, bindId = string } while waiting for a key
@@ -240,7 +246,11 @@ local function scheduleSave()
 			return
 		end
 		pcall(function()
-			settingsRemote:InvokeServer("set", { binds = savedBinds, hudVisible = hudVisible })
+			settingsRemote:InvokeServer("set", {
+				binds = savedBinds,
+				settings = savedSettings,
+				hudVisible = hudVisible,
+			})
 		end)
 	end)
 end
@@ -265,6 +275,43 @@ local function applySavedBinds(owner)
 			end
 		end
 		owner.binds[bindDef.id] = bind
+	end
+end
+
+-- Sliders ---------------------------------------------------------------------
+
+local function snapSetting(settingDef, value)
+	local steps = math.round((value - settingDef.min) / settingDef.step)
+	return math.clamp(settingDef.min + steps * settingDef.step, settingDef.min, settingDef.max)
+end
+
+local function applySavedSettings(entry)
+	local saved = savedSettings[entry.id]
+	for _, settingDef in ipairs(entry.settingList) do
+		local value = type(saved) == "table" and saved[settingDef.id] or nil
+		entry.settings[settingDef.id] = snapSetting(settingDef, type(value) == "number" and value or settingDef.default)
+	end
+end
+
+local function setSetting(entry, settingDef, value)
+	value = snapSetting(settingDef, value)
+	if entry.settings[settingDef.id] == value then
+		return
+	end
+	entry.settings[settingDef.id] = value
+
+	if type(savedSettings[entry.id]) ~= "table" then
+		savedSettings[entry.id] = {}
+	end
+	savedSettings[entry.id][settingDef.id] = value
+	scheduleSave()
+
+	local def = entry.def
+	if def and type(def.OnSettingChanged) == "function" then
+		local ok, err = pcall(def.OnSettingChanged, entry.ctx, settingDef.id, value)
+		if not ok then
+			warn(string.format("[AbilityMenu] %s OnSettingChanged failed: %s", entry.name, tostring(err)))
+		end
 	end
 end
 
@@ -418,6 +465,9 @@ local function makeContext(entry)
 		end,
 		GetBindName = function(bindId)
 			return bindDisplayName(entry.binds[bindId])
+		end,
+		GetSetting = function(settingId)
+			return entry.settings[settingId]
 		end,
 		SetStatus = function(text)
 			entry.status = text and tostring(text) or nil
@@ -718,6 +768,88 @@ local function createBindRow(entry, bindDef, order)
 	entry.ui.bindButtons[bindDef.id] = bindButton
 end
 
+local function createSettingRow(entry, settingDef, order)
+	local row = make("Frame", {
+		LayoutOrder = order,
+		Size = UDim2.new(1, 0, 0, 40),
+		BackgroundTransparency = 1,
+	})
+	label({
+		Size = UDim2.new(0.6, 0, 0, 16),
+		TextSize = 13,
+		TextColor3 = COLORS.Muted,
+		Text = settingDef.name,
+	}).Parent = row
+	local valueLabel = label({
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.fromScale(1, 0),
+		Size = UDim2.new(0.4, 0, 0, 16),
+		Font = Enum.Font.GothamBold,
+		TextSize = 13,
+		TextXAlignment = Enum.TextXAlignment.Right,
+		Text = "",
+	})
+	valueLabel.Parent = row
+
+	-- A tall invisible button makes the slider easy to grab; the visible
+	-- bar, fill and knob sit inside it.
+	local hitArea = make("TextButton", {
+		Position = UDim2.fromOffset(0, 18),
+		Size = UDim2.new(1, 0, 0, 22),
+		BackgroundTransparency = 1,
+		AutoButtonColor = false,
+		Text = "",
+	})
+	hitArea.Parent = row
+
+	local bar = make("Frame", {
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, 8, 0.5, 0),
+		Size = UDim2.new(1, -16, 0, 6),
+		BackgroundColor3 = COLORS.Button,
+		BorderSizePixel = 0,
+	}, { make("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+	bar.Parent = hitArea
+
+	local fill = make("Frame", {
+		Size = UDim2.fromScale(0, 1),
+		BackgroundColor3 = COLORS.Accent,
+		BorderSizePixel = 0,
+	}, { make("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+	fill.Parent = bar
+
+	local knob = make("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0, 0.5),
+		Size = UDim2.fromOffset(16, 16),
+		BackgroundColor3 = COLORS.Text,
+		ZIndex = 2,
+	}, { make("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+	knob.Parent = bar
+
+	local slider = { entry = entry, settingDef = settingDef, bar = bar, fill = fill, knob = knob, value = valueLabel }
+
+	hitArea.MouseButton1Down:Connect(function(x)
+		activeSlider = slider
+		listFrame.ScrollingEnabled = false -- don't scroll the list while dragging on touch
+		local alpha = math.clamp((x - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
+		setSetting(entry, settingDef, settingDef.min + alpha * (settingDef.max - settingDef.min))
+		refreshAll()
+	end)
+
+	row.Parent = entry.ui.settingsFrame
+	entry.ui.sliders[settingDef.id] = slider
+end
+
+local function refreshSlider(slider)
+	local def = slider.settingDef
+	local value = slider.entry.settings[def.id] or def.default
+	local alpha = (value - def.min) / (def.max - def.min)
+	slider.fill.Size = UDim2.fromScale(alpha, 1)
+	slider.knob.Position = UDim2.fromScale(alpha, 0.5)
+	slider.value.Text = string.format("%g%s", math.round(value * 1000) / 1000, def.suffix)
+end
+
 local function createCard(entry)
 	local card = make("Frame", {
 		Size = UDim2.new(1, 0, 0, 0),
@@ -779,8 +911,16 @@ local function createCard(entry)
 	})
 	notice.Parent = card
 
-	local bindsFrame = make("Frame", {
+	local settingsFrame = make("Frame", {
 		LayoutOrder = 3,
+		Size = UDim2.new(1, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		BackgroundTransparency = 1,
+	}, { list(Enum.FillDirection.Vertical, 6) })
+	settingsFrame.Parent = card
+
+	local bindsFrame = make("Frame", {
+		LayoutOrder = 4,
 		Size = UDim2.new(1, 0, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundTransparency = 1,
@@ -807,6 +947,8 @@ local function createCard(entry)
 		desc = descLabel,
 		action = actionButton,
 		notice = notice,
+		settingsFrame = settingsFrame,
+		sliders = {},
 		binds = bindsFrame,
 		bindButtons = {},
 	}
@@ -864,6 +1006,9 @@ local function refreshCard(entry)
 
 	for bindId, bindButton in pairs(ui.bindButtons) do
 		refreshBindButton(entry, bindId, bindButton)
+	end
+	for _, slider in pairs(ui.sliders) do
+		refreshSlider(slider)
 	end
 end
 
@@ -978,6 +1123,8 @@ local function setMenuOpen(open)
 	menuOpen = open
 	if not open then
 		capturing = nil
+		activeSlider = nil
+		listFrame.ScrollingEnabled = true
 	end
 	refreshAll()
 end
@@ -996,6 +1143,8 @@ local function loadAbility(module)
 		enabled = false,
 		bindList = {},
 		binds = {},
+		settingList = {},
+		settings = {},
 	}
 	entriesByModule[module] = entry
 	table.insert(entries, entry)
@@ -1040,6 +1189,31 @@ local function loadAbility(module)
 		applySavedBinds(entry)
 		for index, bindDef in ipairs(entry.bindList) do
 			createBindRow(entry, bindDef, index)
+		end
+
+		if type(def.Settings) == "table" then
+			for _, s in ipairs(def.Settings) do
+				local valid = type(s) == "table"
+					and type(s.Id) == "string"
+					and type(s.Min) == "number"
+					and type(s.Max) == "number"
+					and s.Max > s.Min
+				if valid then
+					table.insert(entry.settingList, {
+						id = s.Id,
+						name = type(s.Name) == "string" and s.Name or s.Id,
+						min = s.Min,
+						max = s.Max,
+						step = type(s.Step) == "number" and s.Step > 0 and s.Step or 1,
+						default = type(s.Default) == "number" and s.Default or s.Min,
+						suffix = type(s.Suffix) == "string" and s.Suffix or "",
+					})
+				end
+			end
+		end
+		applySavedSettings(entry)
+		for index, settingDef in ipairs(entry.settingList) do
+			createSettingRow(entry, settingDef, index)
 		end
 
 		entry.ctx = makeContext(entry)
@@ -1117,6 +1291,29 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	end
 end)
 
+-- Slider dragging.
+UserInputService.InputChanged:Connect(function(input)
+	if not activeSlider then
+		return
+	end
+	local inputType = input.UserInputType
+	if inputType == Enum.UserInputType.MouseMovement or inputType == Enum.UserInputType.Touch then
+		local s = activeSlider
+		local def = s.settingDef
+		local alpha = math.clamp((input.Position.X - s.bar.AbsolutePosition.X) / s.bar.AbsoluteSize.X, 0, 1)
+		setSetting(s.entry, def, def.min + alpha * (def.max - def.min))
+		refreshCard(s.entry)
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	local inputType = input.UserInputType
+	if activeSlider and (inputType == Enum.UserInputType.MouseButton1 or inputType == Enum.UserInputType.Touch) then
+		activeSlider = nil
+		listFrame.ScrollingEnabled = true
+	end
+end)
+
 hudHeader.Activated:Connect(function()
 	setMenuOpen(not menuOpen)
 end)
@@ -1154,6 +1351,9 @@ if settingsRemote then
 	if ok and type(data) == "table" then
 		if type(data.binds) == "table" then
 			savedBinds = data.binds
+		end
+		if type(data.settings) == "table" then
+			savedSettings = data.settings
 		end
 		if type(data.hudVisible) == "boolean" then
 			hudVisible = data.hudVisible

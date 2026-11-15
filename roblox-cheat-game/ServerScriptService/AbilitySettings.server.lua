@@ -1,5 +1,5 @@
 -- AbilitySettings (Script in ServerScriptService)
--- Saves each player's ability-menu settings (keybinds, HUD on/off)
+-- Saves each player's ability-menu settings (keybinds, sliders, HUD on/off)
 -- between sessions with DataStores. Also makes sure the
 -- ReplicatedStorage > Abilities folder exists.
 --
@@ -57,7 +57,32 @@ end
 local sessions = {}
 
 local function defaultData()
-	return { binds = {}, hudVisible = true }
+	return { binds = {}, settings = {}, hudVisible = true }
+end
+
+-- Keeps only { [string] = { [string] = finite number } }.
+local function sanitizeSettings(settings)
+	local clean, count = {}, 0
+	if type(settings) ~= "table" then
+		return clean
+	end
+	for abilityId, map in pairs(settings) do
+		if type(abilityId) == "string" and #abilityId <= 64 and type(map) == "table" then
+			local inner = {}
+			for settingId, value in pairs(map) do
+				local finite = type(value) == "number" and value == value and math.abs(value) < 1e9
+				if type(settingId) == "string" and #settingId <= 64 and finite then
+					count += 1
+					if count > CONFIG.MaxBinds then
+						return clean
+					end
+					inner[settingId] = value
+				end
+			end
+			clean[abilityId] = inner
+		end
+	end
+	return clean
 end
 
 -- Keeps only { [string] = { [string] = string } } with short strings.
@@ -97,6 +122,7 @@ local function load(player)
 		end)
 		if ok and type(saved) == "table" then
 			session.data.binds = sanitizeBinds(saved.binds)
+			session.data.settings = sanitizeSettings(saved.settings)
 			if type(saved.hudVisible) == "boolean" then
 				session.data.hudVisible = saved.hudVisible
 			end
@@ -170,6 +196,7 @@ settingsRemote.OnServerInvoke = function(player, action, payload)
 		end
 		session.lastSet = now
 		session.data.binds = sanitizeBinds(payload.binds)
+		session.data.settings = sanitizeSettings(payload.settings)
 		if type(payload.hudVisible) == "boolean" then
 			session.data.hudVisible = payload.hudVisible
 		end

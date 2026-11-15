@@ -1,13 +1,12 @@
 -- Flight (ModuleScript in ReplicatedStorage > Abilities)
 -- Fly where the camera points. WASD moves; Up / Down / Boost are
--- rebindable in the ability menu.
+-- rebindable, and the fly speed slider is in the ability menu.
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local SETTINGS = {
-	Speed = 60,
 	BoostMultiplier = 2.5,
 	Acceleration = 8, -- higher = snappier start/stop
 }
@@ -22,6 +21,9 @@ local Flight = {
 		{ Id = "Up", Name = "Fly up", Default = Enum.KeyCode.Space },
 		{ Id = "Down", Name = "Fly down", Default = Enum.KeyCode.LeftControl },
 		{ Id = "Boost", Name = "Boost", Default = Enum.KeyCode.LeftShift },
+	},
+	Settings = {
+		{ Id = "Speed", Name = "Fly speed", Min = 10, Max = 500, Step = 5, Default = 60, Suffix = " studs/s" },
 	},
 }
 
@@ -114,7 +116,7 @@ function Flight.Init(context)
 		end
 		local camera = workspace.CurrentCamera
 
-		local speed = SETTINGS.Speed
+		local speed = ctx.GetSetting("Speed") or 60
 		if ctx.IsBindDown("Boost") then
 			speed *= SETTINGS.BoostMultiplier
 		end

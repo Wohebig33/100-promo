@@ -42,6 +42,9 @@ folder, and keeping both would run everything twice.
 - **Menu** (**Right Shift**, or click the HUD):
   - **ON / OFF** turns a toggle ability on or off. **Use** runs an action
     ability, like opening the map.
+  - **Sliders** adjust an ability's settings, such as Flight's **Fly
+    speed** (10 to 500 studs/s, default 60). Changes apply immediately,
+    even mid-flight.
   - **Rebinding:** click a key button and press any keyboard key, mouse
     button or controller button. Every key can be rebound, including extra
     ones such as Flight's up/down/boost, Aim assist's hold-to-aim and
@@ -52,7 +55,8 @@ folder, and keeping both would run everything twice.
   - **Left click:** while a key button says "Press a key...", clicking on
     the menu cancels. To bind Left click, click in the game world.
   - **Menu key, HUD on/off and Reset keys** are in the footer.
-- Keybinds and the HUD setting are saved per player, by `AbilitySettings`.
+- Keybinds, slider values and the HUD setting are saved per player, by
+  `AbilitySettings`.
 
 | Default key | Ability | Extra keys |
 |---|---|---|
@@ -109,6 +113,8 @@ All fields:
 | `Key` | Default key: an `Enum.KeyCode`, or `Enum.UserInputType.MouseButton1/2/3` |
 | `RequiredAttribute` | Only players with this attribute set to `true` can use it |
 | `Binds` | Extra rebindable keys: `{ { Id = "Up", Name = "Fly up", Default = Enum.KeyCode.Space } }` |
+| `Settings` | Sliders: `{ { Id = "Speed", Name = "Fly speed", Min = 10, Max = 500, Step = 5, Default = 60, Suffix = " studs/s" } }`. Read with `ctx.GetSetting("Speed")` |
+| `OnSettingChanged(ctx, id, value)` | Optional: a slider moved |
 | `Init(ctx)` | Runs once when the module loads |
 | `Enable(ctx)` / `Disable(ctx)` | Toggle turned on/off. Return `false` from Enable to refuse |
 | `Activate(ctx)` | Action abilities: key pressed or Use clicked |
@@ -117,6 +123,7 @@ All fields:
 
 `ctx` gives you `ctx.Player`, `ctx.SetEnabled(bool)`, `ctx.IsEnabled()`,
 `ctx.IsBindDown(id)` (for held keys), `ctx.GetBindName(id)`,
+`ctx.GetSetting(id)`,
 `ctx.SetStatus(text)` (replaces "ON" in the HUD) and `ctx.Notify(text)`.
 
 If a module errors, its card shows the error and the other abilities keep
